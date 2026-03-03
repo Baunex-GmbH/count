@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useDocumentStore } from '@/stores/documents'
+import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notifications'
+import { uploadFile, getFileUrl } from '@/services/api'
 
 const props = defineProps<{ visible: boolean }>()
 const emit = defineEmits<{ 'update:visible': [value: boolean]; uploaded: [] }>()
 
 const documentStore = useDocumentStore()
+const authStore = useAuthStore()
+const notifications = useNotificationStore()
 const isDragging = ref(false)
 const isUploading = ref(false)
 const uploadProgress = ref(0)
 const selectedFile = ref<File | null>(null)
 const previewUrl = ref<string | null>(null)
+const uploadError = ref<string | null>(null)
 
 function onDragOver(e: DragEvent) {
   e.preventDefault()
@@ -43,6 +49,7 @@ function selectFile(file: File) {
     alert('Bitte nur PDF, JPG oder PNG Dateien hochladen.')
     return
   }
+  uploadError.value = null
   selectedFile.value = file
   if (file.type.startsWith('image/')) {
     previewUrl.value = URL.createObjectURL(file)
@@ -51,37 +58,47 @@ function selectFile(file: File) {
   }
 }
 
-function simulateUpload() {
-  if (!selectedFile.value) return
+async function doUpload() {
+  if (!selectedFile.value || !authStore.currentTenant) return
   isUploading.value = true
   uploadProgress.value = 0
+  uploadError.value = null
 
-  const interval = setInterval(() => {
-    uploadProgress.value += Math.random() * 30 + 10
-    if (uploadProgress.value >= 100) {
-      uploadProgress.value = 100
-      clearInterval(interval)
+  const file = selectedFile.value
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf'
+  const documentId = `doc-${Date.now()}`
+  const tenantId = authStore.currentTenant.id
 
-      const file = selectedFile.value!
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf'
-      documentStore.uploadDocument(file.name, ext, previewUrl.value)
+  try {
+    await uploadFile(file, tenantId, documentId, (percent) => {
+      uploadProgress.value = percent
+    })
 
-      setTimeout(() => {
-        isUploading.value = false
-        selectedFile.value = null
-        previewUrl.value = null
-        uploadProgress.value = 0
-        emit('update:visible', false)
-        emit('uploaded')
-      }, 300)
-    }
-  }, 200)
+    uploadProgress.value = 100
+    const fileUrl = getFileUrl(tenantId, documentId, file.name)
+    documentStore.uploadDocument(file.name, ext, fileUrl, documentId)
+
+    setTimeout(() => {
+      isUploading.value = false
+      selectedFile.value = null
+      previewUrl.value = null
+      uploadProgress.value = 0
+      emit('update:visible', false)
+      emit('uploaded')
+    }, 300)
+  } catch (err) {
+    isUploading.value = false
+    uploadProgress.value = 0
+    uploadError.value = err instanceof Error ? err.message : 'Upload fehlgeschlagen'
+    notifications.error('Upload fehlgeschlagen', uploadError.value!)
+  }
 }
 
 function close() {
   if (isUploading.value) return
   selectedFile.value = null
   previewUrl.value = null
+  uploadError.value = null
   emit('update:visible', false)
 }
 </script>
@@ -109,10 +126,16 @@ function close() {
             <i class="pi pi-cloud-upload dropzone__icon"></i>
             <p class="dropzone__text">Datei hierher ziehen</p>
             <p class="dropzone__hint">oder</p>
-            <label class="dropzone__btn">
-              Datei auswählen
-              <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="onFileSelect" hidden />
-            </label>
+            <div class="dropzone__buttons">
+              <label class="dropzone__btn">
+                Datei auswählen
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="onFileSelect" hidden />
+              </label>
+              <label class="dropzone__btn dropzone__btn--camera">
+                <i class="pi pi-camera"></i> Foto aufnehmen
+                <input type="file" accept="image/*" capture="environment" @change="onFileSelect" hidden />
+              </label>
+            </div>
             <p class="dropzone__formats">PDF, JPG, PNG bis 10 MB</p>
           </div>
 
@@ -127,18 +150,23 @@ function close() {
               </div>
             </div>
 
+            <div v-if="uploadError" class="upload-error">
+              <i class="pi pi-exclamation-triangle"></i>
+              {{ uploadError }}
+            </div>
+
             <div v-if="isUploading" class="progress">
               <div class="progress__bar">
                 <div class="progress__fill" :style="{ width: Math.min(uploadProgress, 100) + '%' }"></div>
               </div>
-              <span class="progress__text">OCR wird durchgeführt...</span>
+              <span class="progress__text">{{ uploadProgress < 100 ? 'Wird hochgeladen...' : 'OCR wird durchgeführt...' }}</span>
             </div>
 
             <div v-else class="preview__actions">
-              <button class="btn btn--secondary" @click="selectedFile = null; previewUrl = null">
+              <button class="btn btn--secondary" @click="selectedFile = null; previewUrl = null; uploadError = null">
                 Andere Datei
               </button>
-              <button class="btn btn--primary" @click="simulateUpload">
+              <button class="btn btn--primary" @click="doUpload">
                 <i class="pi pi-upload"></i> Hochladen
               </button>
             </div>
@@ -227,8 +255,17 @@ function close() {
   margin: 0.5rem 0;
 }
 
+.dropzone__buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .dropzone__btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   background: #0B3D91;
   color: white;
   padding: 0.5rem 1rem;
@@ -236,6 +273,10 @@ function close() {
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
+}
+
+.dropzone__btn--camera {
+  background: #4b5563;
 }
 
 .dropzone__formats {
@@ -275,6 +316,18 @@ function close() {
   display: flex;
   gap: 0.75rem;
   justify-content: flex-end;
+}
+
+.upload-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  color: #dc2626;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
 }
 
 .progress {

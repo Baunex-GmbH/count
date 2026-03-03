@@ -84,8 +84,8 @@ export const useDocumentStore = defineStore('documents', () => {
     notifications.info('OCR aktualisiert', 'Texterkennung wurde erneut durchgeführt')
   }
 
-  function uploadDocument(dateiname: string, dateityp: string, vorschauUrl: string | null): Document {
-    const id = `doc-${Date.now()}`
+  function uploadDocument(dateiname: string, dateityp: string, vorschauUrl: string | null, documentId?: string): Document {
+    const id = documentId || `doc-${Date.now()}`
     const ocrResult = generateOcrResult()
 
     const newDoc: Document = {
