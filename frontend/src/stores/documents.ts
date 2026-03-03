@@ -27,7 +27,6 @@ export const useDocumentStore = defineStore('documents', () => {
     const tenantDocs = currentTenantDocs.value
     return {
       alle: tenantDocs.length,
-      neu: tenantDocs.filter((d) => d.status === 'Neu').length,
       inPruefung: tenantDocs.filter((d) => d.status === 'In Pruefung').length,
       verbucht: tenantDocs.filter((d) => d.status === 'Verbucht').length,
     }
@@ -66,7 +65,6 @@ export const useDocumentStore = defineStore('documents', () => {
     doc.status = newStatus
 
     const statusLabels: Record<BelegStatus, string> = {
-      'Neu': 'Neu',
       'In Pruefung': 'In Prüfung',
       'Verbucht': 'Verbucht',
     }
@@ -86,7 +84,6 @@ export const useDocumentStore = defineStore('documents', () => {
 
   function uploadDocument(dateiname: string, dateityp: string, vorschauUrl: string | null, documentId?: string): Document {
     const id = documentId || `doc-${Date.now()}`
-    const ocrResult = generateOcrResult()
 
     const newDoc: Document = {
       id,
@@ -95,8 +92,8 @@ export const useDocumentStore = defineStore('documents', () => {
       dateityp,
       uploadDatum: new Date().toISOString(),
       uploadedBy: authStore.currentUser!.id,
-      status: 'Neu',
-      ocrResult,
+      status: 'In Pruefung',
+      ocrResult: null,
       vorschauUrl,
       auditLog: [
         {
@@ -106,16 +103,7 @@ export const useDocumentStore = defineStore('documents', () => {
           userId: authStore.currentUser!.id,
           userName: authStore.currentUser!.name,
           action: 'Hochgeladen',
-          details: 'Dokument hochgeladen',
-        },
-        {
-          id: `audit-${Date.now()}-2`,
-          documentId: id,
-          timestamp: new Date(Date.now() + 2000).toISOString(),
-          userId: 'system',
-          userName: 'System',
-          action: 'OCR durchgeführt',
-          details: `Automatische Texterkennung abgeschlossen (${ocrResult.confidence}%)`,
+          details: 'Dokument hochgeladen – wartet auf Prüfung',
         },
       ],
     }

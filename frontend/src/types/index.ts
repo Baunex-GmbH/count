@@ -2,7 +2,7 @@
 
 export type UserRole = 'Hauptbuchhalter' | 'Buchhalter' | 'User'
 
-export type BelegStatus = 'Neu' | 'In Pruefung' | 'Verbucht'
+export type BelegStatus = 'In Pruefung' | 'Verbucht'
 
 export type BuchungsStatus = 'OCR-Vorschlag' | 'Manuell bestaetigt'
 

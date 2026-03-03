@@ -91,7 +91,7 @@ export const documents: Document[] = [
     dateityp: 'pdf',
     uploadDatum: '2024-01-20T10:15:00Z',
     uploadedBy: 'user-4',
-    status: 'Neu',
+    status: 'In Pruefung',
     ocrResult: {
       betrag: 3200.00,
       netto: 3200.00,
@@ -117,7 +117,7 @@ export const documents: Document[] = [
     dateityp: 'pdf',
     uploadDatum: '2024-01-22T14:30:00Z',
     uploadedBy: 'user-4',
-    status: 'Neu',
+    status: 'In Pruefung',
     ocrResult: {
       betrag: 395.00,
       netto: 365.40,
@@ -226,7 +226,7 @@ export const documents: Document[] = [
     dateityp: 'pdf',
     uploadDatum: '2024-01-28T07:30:00Z',
     uploadedBy: 'user-5',
-    status: 'Neu',
+    status: 'In Pruefung',
     ocrResult: {
       betrag: 1847.30,
       netto: 1708.88,
@@ -279,7 +279,7 @@ export const documents: Document[] = [
     dateityp: 'pdf',
     uploadDatum: '2024-01-30T10:00:00Z',
     uploadedBy: 'user-5',
-    status: 'Neu',
+    status: 'In Pruefung',
     ocrResult: {
       betrag: 2340.00,
       netto: 2340.00,
@@ -361,7 +361,7 @@ export const documents: Document[] = [
     dateityp: 'pdf',
     uploadDatum: '2024-01-25T08:45:00Z',
     uploadedBy: 'user-6',
-    status: 'Neu',
+    status: 'In Pruefung',
     ocrResult: {
       betrag: 1250.00,
       netto: 1156.34,
@@ -387,7 +387,7 @@ export const documents: Document[] = [
     dateityp: 'jpg',
     uploadDatum: '2024-01-28T06:15:00Z',
     uploadedBy: 'user-6',
-    status: 'Neu',
+    status: 'In Pruefung',
     ocrResult: {
       betrag: 156.80,
       netto: 152.84,
@@ -413,7 +413,7 @@ export const documents: Document[] = [
     dateityp: 'pdf',
     uploadDatum: '2024-01-30T16:00:00Z',
     uploadedBy: 'user-4',
-    status: 'Neu',
+    status: 'In Pruefung',
     ocrResult: {
       betrag: -320.00,
       netto: -296.02,

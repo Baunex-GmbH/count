@@ -5,7 +5,6 @@ import { useDocumentStore } from '@/stores/documents'
 import { useJournalStore } from '@/stores/journal'
 import { useAuditLog } from '@/composables/useAuditLog'
 import StatusBadge from '@/components/StatusBadge.vue'
-import ConfidenceBadge from '@/components/ConfidenceBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -45,10 +44,6 @@ function rerunOcr() {
   docs.rerunOcr(docId.value)
 }
 
-function setInPruefung() {
-  docs.setStatus(docId.value, 'In Pruefung')
-}
-
 function verbuchen() {
   docs.setStatus(docId.value, 'Verbucht')
   const entry = journal.getByDocumentId(docId.value)
@@ -71,7 +66,6 @@ function verbuchen() {
       </button>
       <div class="detail__toolbar-right">
         <StatusBadge :status="document.status" />
-        <ConfidenceBadge v-if="document.ocrResult" :confidence="document.ocrResult.confidence" />
       </div>
     </div>
 
@@ -148,18 +142,10 @@ function verbuchen() {
         </div>
 
         <!-- Actions -->
-        <div class="actions-card" v-if="document.status !== 'Verbucht'">
+        <div class="actions-card" v-if="document.status === 'In Pruefung'">
           <h3>Aktionen</h3>
           <div class="actions-card__buttons">
             <button
-              v-if="document.status === 'Neu'"
-              class="btn btn--warning"
-              @click="setInPruefung"
-            >
-              <i class="pi pi-search"></i> In Prüfung setzen
-            </button>
-            <button
-              v-if="document.status === 'In Pruefung'"
               class="btn btn--success"
               @click="verbuchen"
             >

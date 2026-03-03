@@ -6,7 +6,6 @@ const props = defineProps<{ status: BelegStatus }>()
 
 const config = computed(() => {
   const map: Record<BelegStatus, { label: string; class: string }> = {
-    'Neu': { label: 'Neu', class: 'badge--neu' },
     'In Pruefung': { label: 'In Prüfung', class: 'badge--pruefung' },
     'Verbucht': { label: 'Verbucht', class: 'badge--verbucht' },
   }
@@ -27,11 +26,6 @@ const config = computed(() => {
   font-size: 0.78rem;
   font-weight: 600;
   white-space: nowrap;
-}
-
-.badge--neu {
-  background: #dbeafe;
-  color: #1d4ed8;
 }
 
 .badge--pruefung {

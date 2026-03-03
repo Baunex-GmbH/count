@@ -48,8 +48,8 @@ function goToBeleg(id: string) {
           <i class="pi pi-file"></i>
         </div>
         <div class="stat-card__body">
-          <span class="stat-card__value">{{ docs.countByStatus.neu }}</span>
-          <span class="stat-card__label">Offene Belege</span>
+          <span class="stat-card__value">{{ docs.countByStatus.alle }}</span>
+          <span class="stat-card__label">Alle Belege</span>
         </div>
       </div>
       <div class="stat-card">

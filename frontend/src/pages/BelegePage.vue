@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import { useDocumentStore } from '@/stores/documents'
 import type { BelegStatus } from '@/types'
 import StatusBadge from '@/components/StatusBadge.vue'
-import ConfidenceBadge from '@/components/ConfidenceBadge.vue'
 import UploadModal from '@/components/UploadModal.vue'
 
 const router = useRouter()
@@ -19,14 +18,12 @@ const filteredDocs = computed(() => {
 
 const filters: { key: 'alle' | BelegStatus; label: string }[] = [
   { key: 'alle', label: 'Alle' },
-  { key: 'Neu', label: 'Neu' },
   { key: 'In Pruefung', label: 'In Prüfung' },
   { key: 'Verbucht', label: 'Verbucht' },
 ]
 
 function filterCount(key: 'alle' | BelegStatus): number {
   if (key === 'alle') return docs.countByStatus.alle
-  if (key === 'Neu') return docs.countByStatus.neu
   if (key === 'In Pruefung') return docs.countByStatus.inPruefung
   return docs.countByStatus.verbucht
 }
@@ -81,7 +78,6 @@ function goToDetail(id: string) {
             <th>Datum</th>
             <th>Lieferant</th>
             <th style="text-align: right">Betrag</th>
-            <th>Konfidenz</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -102,10 +98,6 @@ function goToDetail(id: string) {
             <td>{{ doc.ocrResult?.lieferant || '–' }}</td>
             <td style="text-align: right; font-family: monospace; font-weight: 500">
               {{ doc.ocrResult ? formatCHF(doc.ocrResult.betrag) : '–' }}
-            </td>
-            <td>
-              <ConfidenceBadge v-if="doc.ocrResult" :confidence="doc.ocrResult.confidence" />
-              <span v-else>–</span>
             </td>
             <td><StatusBadge :status="doc.status" /></td>
           </tr>
