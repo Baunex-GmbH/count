@@ -81,7 +81,10 @@ function verbuchen() {
       <!-- Left: Preview -->
       <div class="detail__preview">
         <div class="preview-panel">
-          <div v-if="document.vorschauUrl" class="preview-panel__image">
+          <div v-if="document.vorschauUrl && document.dateityp === 'pdf'" class="preview-panel__pdf">
+            <iframe :src="document.vorschauUrl" type="application/pdf"></iframe>
+          </div>
+          <div v-else-if="document.vorschauUrl" class="preview-panel__image">
             <img :src="document.vorschauUrl" alt="Vorschau" />
           </div>
           <div v-else class="preview-panel__placeholder">
@@ -239,6 +242,13 @@ function verbuchen() {
 
 .preview-panel__image img {
   width: 100%;
+  display: block;
+}
+
+.preview-panel__pdf iframe {
+  width: 100%;
+  height: 600px;
+  border: none;
   display: block;
 }
 
