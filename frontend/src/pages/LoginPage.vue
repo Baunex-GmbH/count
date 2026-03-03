@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { tenants } from '@/data/tenants'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -9,6 +10,16 @@ const selectedEmail = ref('')
 const password = ref('demo')
 const errorMsg = ref('')
 const demoUsers = auth.getDemoUsers()
+
+const groupedUsers = computed(() => {
+  const treuhand = demoUsers.filter(u => u.role === 'Hauptbuchhalter' || u.role === 'Buchhalter')
+  const mandanten = demoUsers.filter(u => u.role === 'User')
+  return { treuhand, mandanten }
+})
+
+function getTenantName(tenantId: string): string {
+  return tenants.find(t => t.id === tenantId)?.name || ''
+}
 
 function handleLogin() {
   errorMsg.value = ''
@@ -43,9 +54,16 @@ function handleLogin() {
         <label class="form-label">Benutzer</label>
         <select v-model="selectedEmail" class="form-select">
           <option value="" disabled>Benutzer auswählen...</option>
-          <option v-for="user in demoUsers" :key="user.id" :value="user.email">
-            {{ user.name }} ({{ user.role }})
-          </option>
+          <optgroup label="Treuhand / Buchhaltung">
+            <option v-for="user in groupedUsers.treuhand" :key="user.id" :value="user.email">
+              {{ user.name }} – {{ user.role }}
+            </option>
+          </optgroup>
+          <optgroup label="Mandanten">
+            <option v-for="user in groupedUsers.mandanten" :key="user.id" :value="user.email">
+              {{ user.name }} – {{ getTenantName(user.tenantIds[0]) }}
+            </option>
+          </optgroup>
         </select>
       </div>
 
