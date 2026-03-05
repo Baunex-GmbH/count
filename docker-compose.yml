@@ -1,8 +1,21 @@
 services:
-  frontend:
-    build: ./frontend
+  caddy:
+    image: caddy:2-alpine
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    expose:
+      - "80"
     depends_on:
       - backend
     restart: unless-stopped
@@ -17,3 +30,7 @@ services:
       - SOS_SECRET_KEY=${SOS_SECRET_KEY}
       - SOS_BUCKET=${SOS_BUCKET:-count-belege}
     restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
