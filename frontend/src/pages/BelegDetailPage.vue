@@ -1,35 +1,60 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDocumentStore } from '@/stores/documents'
 import { useJournalStore } from '@/stores/journal'
+import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notifications'
 import { useAuditLog } from '@/composables/useAuditLog'
 import StatusBadge from '@/components/StatusBadge.vue'
+import type { Konto, MwstSatz } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const docs = useDocumentStore()
 const journal = useJournalStore()
+const auth = useAuthStore()
+const notifications = useNotificationStore()
 const auditExpanded = ref(false)
+const kontenrahmen = journal.getKontenrahmen()
 
 const docId = computed(() => route.params.id as string)
 const document = computed(() => docs.getById(docId.value))
 const journalEntry = computed(() => journal.getByDocumentId(docId.value))
 const { auditEntries, formatTimestamp } = useAuditLog(() => document.value)
 
-const ocrFields = computed(() => {
-  const ocr = document.value?.ocrResult
-  if (!ocr) return []
-  return [
-    { label: 'Lieferant', value: ocr.lieferant, icon: 'pi-building' },
-    { label: 'Belegtyp', value: ocr.belegTyp, icon: 'pi-tag' },
-    { label: 'Datum', value: formatDate(ocr.datum), icon: 'pi-calendar' },
-    { label: 'Betrag (brutto)', value: formatCHF(ocr.betrag), icon: 'pi-wallet' },
-    { label: 'Nettobetrag', value: formatCHF(ocr.netto), icon: 'pi-minus-circle' },
-    { label: 'MwSt', value: `${formatCHF(ocr.mwst)} (${ocr.mwstSatz}%)`, icon: 'pi-percentage' },
-    { label: 'Beschreibung', value: ocr.beschreibung, icon: 'pi-align-left' },
-    { label: 'Währung', value: ocr.waehrung, icon: 'pi-money-bill' },
-  ]
+const isBuchhalter = computed(() => {
+  const role = auth.currentUser?.role
+  return role === 'Buchhalter' || role === 'Hauptbuchhalter'
+})
+
+const canEdit = computed(() => isBuchhalter.value && document.value?.status === 'In Pruefung')
+
+// Booking form
+const mwstOptions: MwstSatz[] = [8.1, 2.6, 3.8, 0]
+
+const form = reactive({
+  lieferant: '',
+  beschreibung: '',
+  datum: new Date().toISOString().split('T')[0],
+  brutto: null as number | null,
+  mwstSatz: 8.1 as MwstSatz,
+  sollKonto: '' as string,
+})
+
+const berechneteWerte = computed(() => {
+  if (!form.brutto || form.brutto <= 0) return { netto: 0, mwst: 0 }
+  const mwst = form.mwstSatz > 0 ? Math.round((form.brutto / (1 + form.mwstSatz / 100)) * (form.mwstSatz / 100) * 100) / 100 : 0
+  const netto = Math.round((form.brutto - mwst) * 100) / 100
+  return { netto, mwst }
+})
+
+const selectedKonto = computed((): Konto | undefined => {
+  return kontenrahmen.find(k => k.nummer === form.sollKonto)
+})
+
+const formValid = computed(() => {
+  return form.lieferant.trim() && form.brutto && form.brutto > 0 && form.sollKonto && form.datum
 })
 
 function formatCHF(value: number): string {
@@ -40,16 +65,42 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-function rerunOcr() {
-  docs.rerunOcr(docId.value)
-}
-
 function verbuchen() {
-  docs.setStatus(docId.value, 'Verbucht')
-  const entry = journal.getByDocumentId(docId.value)
-  if (entry) {
-    journal.confirmEntry(entry.id)
+  if (!formValid.value || !document.value) return
+
+  const brutto = form.brutto!
+  const { netto, mwst } = berechneteWerte.value
+  const konto = selectedKonto.value!
+
+  // Update document OCR data
+  docs.updateOcrResult(docId.value, {
+    betrag: brutto,
+    netto,
+    mwst,
+    mwstSatz: form.mwstSatz,
+    datum: form.datum,
+    lieferant: form.lieferant,
+    belegTyp: 'Rechnung',
+    beschreibung: form.beschreibung,
+    confidence: 100,
+    waehrung: 'CHF',
+  })
+
+  // Create journal entry
+  const lines = [
+    { kontoNummer: konto.nummer, kontoBezeichnung: konto.bezeichnung, soll: netto, haben: 0, text: `${form.lieferant} netto` },
+  ]
+  if (mwst > 0) {
+    lines.push({ kontoNummer: '1170', kontoBezeichnung: 'Vorsteuer (MwSt)', soll: mwst, haben: 0, text: `Vorsteuer ${form.mwstSatz}%` })
   }
+  lines.push({ kontoNummer: '2000', kontoBezeichnung: 'Kreditoren (Verbindlichkeiten L+L)', soll: 0, haben: brutto, text: `Verbindlichkeit ${form.lieferant}` })
+
+  journal.createEntryForDocument(docId.value, document.value.tenantId, form.beschreibung || form.lieferant, lines)
+  const entry = journal.getByDocumentId(docId.value)
+  if (entry) journal.confirmEntry(entry.id)
+
+  docs.setStatus(docId.value, 'Verbucht')
+  notifications.success('Verbucht', `Beleg "${document.value.dateiname}" wurde verbucht`)
 }
 </script>
 
@@ -91,35 +142,140 @@ function verbuchen() {
 
       <!-- Right: Data -->
       <div class="detail__data">
-        <!-- OCR Results -->
-        <div class="card">
+
+        <!-- Buchungsformular (nur Buchhalter, nur In Prüfung) -->
+        <div v-if="canEdit" class="card">
           <div class="card__header">
-            <h3>
-              <i class="pi pi-eye"></i> OCR-Ergebnis
-              <span class="card__hint">vorgeschlagen</span>
-            </h3>
-            <button class="btn btn--outline btn--sm" @click="rerunOcr" :disabled="document.status === 'Verbucht'">
-              <i class="pi pi-refresh"></i> OCR neu ausführen
+            <h3><i class="pi pi-pencil"></i> Buchung erfassen</h3>
+          </div>
+          <div class="booking-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Lieferant *</label>
+                <input v-model="form.lieferant" type="text" class="form-input" placeholder="z.B. Swisscom AG" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Belegdatum *</label>
+                <input v-model="form.datum" type="date" class="form-input" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Beschreibung</label>
+              <input v-model="form.beschreibung" type="text" class="form-input" placeholder="z.B. Mobile Abo Januar 2024" />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Betrag brutto (CHF) *</label>
+                <input v-model.number="form.brutto" type="number" step="0.05" min="0" class="form-input" placeholder="0.00" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">MwSt-Satz</label>
+                <select v-model.number="form.mwstSatz" class="form-input">
+                  <option v-for="satz in mwstOptions" :key="satz" :value="satz">
+                    {{ satz > 0 ? satz + '%' : 'Keine MwSt (0%)' }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div v-if="form.brutto && form.brutto > 0" class="calc-preview">
+              <span>Netto: {{ formatCHF(berechneteWerte.netto) }}</span>
+              <span v-if="berechneteWerte.mwst > 0">MwSt: {{ formatCHF(berechneteWerte.mwst) }}</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Aufwandkonto (Soll) *</label>
+              <select v-model="form.sollKonto" class="form-input">
+                <option value="" disabled>Konto wählen...</option>
+                <optgroup v-for="kat in ['Aufwand', 'Aktiven']" :key="kat" :label="kat">
+                  <option v-for="k in kontenrahmen.filter(k => k.kategorie === kat)" :key="k.nummer" :value="k.nummer">
+                    {{ k.nummer }} – {{ k.bezeichnung }}
+                  </option>
+                </optgroup>
+              </select>
+            </div>
+
+            <!-- Buchungssatz Vorschau -->
+            <div v-if="formValid" class="booking-preview">
+              <div class="booking-preview__title">Buchungssatz</div>
+              <table class="booking-preview__table">
+                <thead>
+                  <tr>
+                    <th>Konto</th>
+                    <th>Bezeichnung</th>
+                    <th style="text-align:right">Soll</th>
+                    <th style="text-align:right">Haben</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="konto">{{ form.sollKonto }}</td>
+                    <td>{{ selectedKonto?.bezeichnung }}</td>
+                    <td style="text-align:right;font-family:monospace">{{ formatCHF(berechneteWerte.netto) }}</td>
+                    <td></td>
+                  </tr>
+                  <tr v-if="berechneteWerte.mwst > 0">
+                    <td class="konto">1170</td>
+                    <td>Vorsteuer (MwSt)</td>
+                    <td style="text-align:right;font-family:monospace">{{ formatCHF(berechneteWerte.mwst) }}</td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td class="konto">2000</td>
+                    <td>Kreditoren</td>
+                    <td></td>
+                    <td style="text-align:right;font-family:monospace">{{ formatCHF(form.brutto!) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <button class="btn btn--success btn--full" @click="verbuchen" :disabled="!formValid">
+              <i class="pi pi-check"></i> Verbuchen
             </button>
           </div>
+        </div>
+
+        <!-- Gebuchte Daten (Buchhalter sieht es nach Verbuchung, oder wenn schon gebucht) -->
+        <div v-if="isBuchhalter && document.ocrResult && document.status === 'Verbucht'" class="card">
+          <div class="card__header">
+            <h3><i class="pi pi-check-circle"></i> Gebuchte Daten</h3>
+          </div>
           <div class="ocr-fields">
-            <div v-for="field in ocrFields" :key="field.label" class="ocr-field">
-              <span class="ocr-field__label">
-                <i :class="'pi ' + field.icon" class="ocr-field__icon"></i>
-                {{ field.label }}
-              </span>
-              <span class="ocr-field__value">{{ field.value }}</span>
+            <div class="ocr-field">
+              <span class="ocr-field__label"><i class="pi pi-building ocr-field__icon"></i> Lieferant</span>
+              <span class="ocr-field__value">{{ document.ocrResult.lieferant }}</span>
+            </div>
+            <div class="ocr-field">
+              <span class="ocr-field__label"><i class="pi pi-calendar ocr-field__icon"></i> Datum</span>
+              <span class="ocr-field__value">{{ formatDate(document.ocrResult.datum) }}</span>
+            </div>
+            <div class="ocr-field">
+              <span class="ocr-field__label"><i class="pi pi-wallet ocr-field__icon"></i> Betrag (brutto)</span>
+              <span class="ocr-field__value">{{ formatCHF(document.ocrResult.betrag) }}</span>
+            </div>
+            <div class="ocr-field">
+              <span class="ocr-field__label"><i class="pi pi-minus-circle ocr-field__icon"></i> Nettobetrag</span>
+              <span class="ocr-field__value">{{ formatCHF(document.ocrResult.netto) }}</span>
+            </div>
+            <div class="ocr-field">
+              <span class="ocr-field__label"><i class="pi pi-percentage ocr-field__icon"></i> MwSt</span>
+              <span class="ocr-field__value">{{ formatCHF(document.ocrResult.mwst) }} ({{ document.ocrResult.mwstSatz }}%)</span>
+            </div>
+            <div v-if="document.ocrResult.beschreibung" class="ocr-field">
+              <span class="ocr-field__label"><i class="pi pi-align-left ocr-field__icon"></i> Beschreibung</span>
+              <span class="ocr-field__value">{{ document.ocrResult.beschreibung }}</span>
             </div>
           </div>
         </div>
 
-        <!-- Journal Entry -->
-        <div class="card" v-if="journalEntry">
+        <!-- Journal Entry (nur Buchhalter) -->
+        <div class="card" v-if="isBuchhalter && journalEntry">
           <div class="card__header">
             <h3><i class="pi pi-book"></i> Buchungssatz</h3>
-            <span class="journal-status" :class="journalEntry.status === 'Manuell bestaetigt' ? 'journal-status--confirmed' : 'journal-status--suggestion'">
-              {{ journalEntry.status === 'Manuell bestaetigt' ? 'Bestätigt' : 'OCR-Vorschlag' }}
-            </span>
+            <span class="journal-status journal-status--confirmed">Bestätigt</span>
           </div>
           <table class="journal-table">
             <thead>
@@ -141,16 +297,22 @@ function verbuchen() {
           </table>
         </div>
 
-        <!-- Actions -->
-        <div class="actions-card" v-if="document.status === 'In Pruefung'">
-          <h3>Aktionen</h3>
-          <div class="actions-card__buttons">
-            <button
-              class="btn btn--success"
-              @click="verbuchen"
-            >
-              <i class="pi pi-check"></i> Bestätigen & Verbuchen
-            </button>
+        <!-- Info for Mandant users -->
+        <div v-if="!isBuchhalter && document.status === 'In Pruefung'" class="card">
+          <div class="card__header">
+            <h3><i class="pi pi-info-circle"></i> Status</h3>
+          </div>
+          <div class="info-message">
+            Dieser Beleg wird von Ihrem Buchhalter geprüft und verbucht.
+          </div>
+        </div>
+
+        <div v-if="!isBuchhalter && document.status === 'Verbucht'" class="card">
+          <div class="card__header">
+            <h3><i class="pi pi-check-circle"></i> Status</h3>
+          </div>
+          <div class="info-message info-message--success">
+            Dieser Beleg wurde geprüft und verbucht.
           </div>
         </div>
 
@@ -291,15 +453,101 @@ function verbuchen() {
   gap: 0.5rem;
 }
 
-.card__hint {
-  font-size: 0.72rem;
-  color: #9ca3af;
-  font-weight: 400;
-  background: #f3f4f6;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
+/* Booking form */
+.booking-form {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.form-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.form-input {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  color: #1f2937;
+  background: white;
+  outline: none;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  border-color: #0B3D91;
+  box-shadow: 0 0 0 3px rgba(11, 61, 145, 0.1);
+}
+
+.calc-preview {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.82rem;
+  color: #6b7280;
+  background: #f9fafb;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+}
+
+.booking-preview {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.booking-preview__title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 0.75rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.booking-preview__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.booking-preview__table th {
+  text-align: left;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.72rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.booking-preview__table td {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.booking-preview__table .konto {
+  font-family: monospace;
+  font-weight: 600;
+  color: #0B3D91;
+}
+
+/* OCR / booked data fields */
 .ocr-fields {
   padding: 0.5rem 1.25rem;
 }
@@ -335,6 +583,18 @@ function verbuchen() {
   color: #1f2937;
 }
 
+/* Info message for mandant users */
+.info-message {
+  padding: 1.25rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.info-message--success {
+  color: #047857;
+}
+
+/* Journal table */
 .journal-table {
   width: 100%;
   border-collapse: collapse;
@@ -375,29 +635,7 @@ function verbuchen() {
   color: #047857;
 }
 
-.journal-status--suggestion {
-  background: #fef3c7;
-  color: #b45309;
-}
-
-.actions-card {
-  background: white;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  padding: 1.25rem;
-}
-
-.actions-card h3 {
-  margin: 0 0 0.75rem;
-  font-size: 0.95rem;
-  color: #1f2937;
-}
-
-.actions-card__buttons {
-  display: flex;
-  gap: 0.75rem;
-}
-
+/* Audit log */
 .audit-list {
   padding: 0.75rem 1.25rem;
 }
@@ -455,6 +693,7 @@ function verbuchen() {
   color: #9ca3af;
 }
 
+/* Buttons */
 .btn {
   padding: 0.5rem 1rem;
   border-radius: 6px;
@@ -464,6 +703,7 @@ function verbuchen() {
   border: none;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
   transition: all 0.15s;
 }
@@ -477,36 +717,6 @@ function verbuchen() {
   color: #0B3D91;
 }
 
-.btn--outline {
-  background: white;
-  border: 1px solid #e5e7eb;
-  color: #4b5563;
-}
-
-.btn--outline:hover {
-  border-color: #0B3D91;
-  color: #0B3D91;
-}
-
-.btn--outline:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn--sm {
-  padding: 0.35rem 0.65rem;
-  font-size: 0.8rem;
-}
-
-.btn--warning {
-  background: #f59e0b;
-  color: white;
-}
-
-.btn--warning:hover {
-  background: #d97706;
-}
-
 .btn--success {
   background: #10b981;
   color: white;
@@ -514,6 +724,17 @@ function verbuchen() {
 
 .btn--success:hover {
   background: #059669;
+}
+
+.btn--success:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--full {
+  width: 100%;
+  padding: 0.65rem;
+  font-size: 0.95rem;
 }
 
 .btn--secondary {

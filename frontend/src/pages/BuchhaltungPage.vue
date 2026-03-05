@@ -6,7 +6,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notifications'
 import { tenants } from '@/data/tenants'
 import StatusBadge from '@/components/StatusBadge.vue'
-import ConfidenceBadge from '@/components/ConfidenceBadge.vue'
 
 const router = useRouter()
 const docs = useDocumentStore()
@@ -108,7 +107,6 @@ function sendRueckfrage() {
             <th>Dateiname</th>
             <th>Lieferant</th>
             <th style="text-align: right">Betrag</th>
-            <th>Konfidenz</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -124,9 +122,6 @@ function sendRueckfrage() {
             <td>{{ doc.ocrResult?.lieferant || '–' }}</td>
             <td style="text-align: right; font-family: monospace; font-weight: 500">
               {{ doc.ocrResult ? formatCHF(doc.ocrResult.betrag) : '–' }}
-            </td>
-            <td>
-              <ConfidenceBadge v-if="doc.ocrResult" :confidence="doc.ocrResult.confidence" />
             </td>
             <td><StatusBadge :status="doc.status" /></td>
           </tr>

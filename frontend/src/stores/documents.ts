@@ -57,6 +57,12 @@ export const useDocumentStore = defineStore('documents', () => {
     doc.auditLog.push(entry)
   }
 
+  function updateOcrResult(docId: string, ocrResult: OcrResult) {
+    const doc = docs.value.find((d) => d.id === docId)
+    if (!doc) return
+    doc.ocrResult = ocrResult
+  }
+
   function setStatus(docId: string, newStatus: BelegStatus) {
     const doc = docs.value.find((d) => d.id === docId)
     if (!doc) return
@@ -122,6 +128,7 @@ export const useDocumentStore = defineStore('documents', () => {
     getById,
     setStatus,
     rerunOcr,
+    updateOcrResult,
     uploadDocument,
     addAuditEntry,
   }
