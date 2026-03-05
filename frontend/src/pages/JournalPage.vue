@@ -1,19 +1,42 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
 import { useJournalStore } from '@/stores/journal'
 import { useNotificationStore } from '@/stores/notifications'
 
 const journal = useJournalStore()
 const notifications = useNotificationStore()
-const expandedRows = ref<Set<string>>(new Set())
 
-function toggleRow(id: string) {
-  if (expandedRows.value.has(id)) {
-    expandedRows.value.delete(id)
-  } else {
-    expandedRows.value.add(id)
+const flatLines = computed(() => {
+  const lines: {
+    id: string
+    belegnummer: string
+    buchungsDatum: string
+    kontoNummer: string
+    kontoBezeichnung: string
+    text: string
+    soll: number
+    haben: number
+    status: string
+  }[] = []
+
+  for (const entry of journal.currentTenantEntries) {
+    for (const line of entry.lines) {
+      lines.push({
+        id: line.id,
+        belegnummer: entry.belegnummer,
+        buchungsDatum: entry.buchungsDatum,
+        kontoNummer: line.kontoNummer,
+        kontoBezeichnung: line.kontoBezeichnung,
+        text: line.text,
+        soll: line.soll,
+        haben: line.haben,
+        status: entry.status,
+      })
+    }
   }
-}
+
+  return lines.sort((a, b) => a.buchungsDatum.localeCompare(b.buchungsDatum))
+})
 
 function formatCHF(value: number): string {
   return new Intl.NumberFormat('de-CH', { style: 'currency', currency: 'CHF' }).format(value)
@@ -21,10 +44,6 @@ function formatCHF(value: number): string {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function totalSoll(lines: { soll: number }[]): number {
-  return lines.reduce((sum, l) => sum + l.soll, 0)
 }
 
 function exportDATEV() {
@@ -60,62 +79,34 @@ function exportCSV() {
     </div>
 
     <div class="card">
-      <div v-if="journal.currentTenantEntries.length === 0" class="empty-state">
+      <div v-if="flatLines.length === 0" class="empty-state">
         <i class="pi pi-book empty-state__icon"></i>
         <p>Noch keine Buchungen vorhanden</p>
       </div>
       <table v-else class="table">
         <thead>
           <tr>
-            <th style="width: 40px"></th>
-            <th>Belegnr.</th>
             <th>Datum</th>
-            <th>Beschreibung</th>
-            <th style="text-align: right">Betrag</th>
-            <th>Status</th>
+            <th>Beleg-Nr.</th>
+            <th>Konto</th>
+            <th>Bezeichnung</th>
+            <th>Text</th>
+            <th style="text-align: right">Soll</th>
+            <th style="text-align: right">Haben</th>
           </tr>
         </thead>
-        <tbody v-for="entry in journal.currentTenantEntries" :key="entry.id">
-          <tr class="table__row--clickable" @click="toggleRow(entry.id)">
-            <td>
-              <i :class="expandedRows.has(entry.id) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" style="font-size: 0.8rem; color: #9ca3af"></i>
-            </td>
-            <td class="journal__belegnr">{{ entry.belegnummer }}</td>
-            <td>{{ formatDate(entry.buchungsDatum) }}</td>
-            <td>{{ entry.beschreibung }}</td>
+        <tbody>
+          <tr v-for="line in flatLines" :key="line.id">
+            <td>{{ formatDate(line.buchungsDatum) }}</td>
+            <td class="journal__belegnr">{{ line.belegnummer }}</td>
+            <td class="journal__konto">{{ line.kontoNummer }}</td>
+            <td>{{ line.kontoBezeichnung }}</td>
+            <td class="journal__text">{{ line.text }}</td>
             <td style="text-align: right; font-family: monospace; font-weight: 500">
-              {{ formatCHF(totalSoll(entry.lines)) }}
+              {{ line.soll > 0 ? formatCHF(line.soll) : '' }}
             </td>
-            <td>
-              <span class="journal-status" :class="entry.status === 'Manuell bestaetigt' ? 'journal-status--confirmed' : 'journal-status--suggestion'">
-                {{ entry.status === 'Manuell bestaetigt' ? 'Bestätigt' : 'OCR-Vorschlag' }}
-              </span>
-            </td>
-          </tr>
-          <tr v-if="expandedRows.has(entry.id)" class="expanded-row">
-            <td colspan="6">
-              <div class="expanded-content">
-                <table class="lines-table">
-                  <thead>
-                    <tr>
-                      <th>Konto</th>
-                      <th>Bezeichnung</th>
-                      <th>Text</th>
-                      <th style="text-align: right">Soll</th>
-                      <th style="text-align: right">Haben</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="line in entry.lines" :key="line.id">
-                      <td class="lines-table__konto">{{ line.kontoNummer }}</td>
-                      <td>{{ line.kontoBezeichnung }}</td>
-                      <td style="color: #6b7280">{{ line.text }}</td>
-                      <td style="text-align: right; font-family: monospace">{{ line.soll > 0 ? formatCHF(line.soll) : '' }}</td>
-                      <td style="text-align: right; font-family: monospace">{{ line.haben > 0 ? formatCHF(line.haben) : '' }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            <td style="text-align: right; font-family: monospace; font-weight: 500">
+              {{ line.haben > 0 ? formatCHF(line.haben) : '' }}
             </td>
           </tr>
         </tbody>
@@ -155,6 +146,16 @@ function exportCSV() {
   color: #0B3D91;
 }
 
+.journal__konto {
+  font-family: monospace;
+  font-weight: 600;
+  color: #0B3D91;
+}
+
+.journal__text {
+  color: #6b7280;
+}
+
 .card {
   background: white;
   border-radius: 10px;
@@ -183,71 +184,6 @@ function exportCSV() {
   padding: 0.75rem 1rem;
   font-size: 0.88rem;
   border-bottom: 1px solid #f3f4f6;
-}
-
-.table__row--clickable {
-  cursor: pointer;
-}
-
-.table__row--clickable:hover {
-  background: #f9fafb;
-}
-
-.expanded-row td {
-  padding: 0;
-  background: #f9fafb;
-}
-
-.expanded-content {
-  padding: 0.75rem 1rem 0.75rem 2.5rem;
-}
-
-.lines-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 6px;
-  overflow: hidden;
-  border: 1px solid #e5e7eb;
-}
-
-.lines-table th {
-  text-align: left;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.72rem;
-  color: #6b7280;
-  font-weight: 500;
-  text-transform: uppercase;
-  background: #f3f4f6;
-}
-
-.lines-table td {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.85rem;
-  border-top: 1px solid #f3f4f6;
-}
-
-.lines-table__konto {
-  font-family: monospace;
-  font-weight: 600;
-  color: #0B3D91;
-}
-
-.journal-status {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-}
-
-.journal-status--confirmed {
-  background: #d1fae5;
-  color: #047857;
-}
-
-.journal-status--suggestion {
-  background: #fef3c7;
-  color: #b45309;
 }
 
 .empty-state {
