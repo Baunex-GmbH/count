@@ -63,7 +63,7 @@ const pricingTiers: PricingTier[] = [
   },
   {
     name: 'Complete',
-    preis: 59,
+    preis: 79,
     preisPrefix: 'ab',
     description: 'Für Unternehmer, die sich nicht um Buchhaltung kümmern wollen.',
     features: [
@@ -121,37 +121,47 @@ function saveSystemSettings() {
     </div>
 
     <!-- Abonnement Tab (User only) -->
-    <div v-if="activeTab === 'abo'" class="settings__content">
-      <p class="settings__info">
-        Aktueller Plan: <strong>{{ auth.currentTenant?.plan }}</strong>
-      </p>
+    <div v-if="activeTab === 'abo'" class="settings__content settings__content--wide">
       <div class="pricing-grid">
         <div
-          v-for="tier in pricingTiers"
+          v-for="(tier, index) in pricingTiers"
           :key="tier.name"
           class="pricing-card"
-          :class="{ 'pricing-card--highlighted': tier.highlighted, 'pricing-card--current': auth.currentTenant?.plan === tier.name }"
+          :class="[
+            tier.highlighted ? 'pricing-card--highlighted' : '',
+            auth.currentTenant?.plan === tier.name ? 'pricing-card--current' : '',
+            'pricing-card--tier-' + index,
+          ]"
         >
-          <div v-if="tier.highlighted" class="pricing-card__badge">Empfohlen</div>
-          <div v-if="auth.currentTenant?.plan === tier.name" class="pricing-card__badge pricing-card__badge--current">Aktuell</div>
-          <h3 class="pricing-card__name">{{ tier.name }}</h3>
-          <p class="pricing-card__description">{{ tier.description }}</p>
-          <div class="pricing-card__price">
-            <span v-if="tier.preisPrefix" class="pricing-card__prefix">{{ tier.preisPrefix }} </span>
-            <span class="pricing-card__amount">CHF {{ tier.preis }}</span>
-            <span class="pricing-card__period">/ Monat</span>
+          <div class="pricing-card__top" :class="'pricing-card__top--tier-' + index">
+            <div class="pricing-card__badges">
+              <span v-if="tier.highlighted" class="pricing-card__badge">Beliebteste Wahl</span>
+              <span v-if="auth.currentTenant?.plan === tier.name" class="pricing-card__badge pricing-card__badge--current">Ihr Plan</span>
+            </div>
+            <h3 class="pricing-card__name">{{ tier.name }}</h3>
+            <div class="pricing-card__price">
+              <span v-if="tier.preisPrefix" class="pricing-card__prefix">{{ tier.preisPrefix }} </span>
+              <span class="pricing-card__amount">{{ tier.preis }}</span>
+              <div class="pricing-card__price-detail">
+                <span class="pricing-card__currency">CHF</span>
+                <span class="pricing-card__period">/ Monat</span>
+              </div>
+            </div>
           </div>
+          <p class="pricing-card__description">{{ tier.description }}</p>
+          <div class="pricing-card__divider"></div>
           <ul class="pricing-card__features">
             <li v-for="feature in tier.features" :key="feature">
-              <i class="pi pi-check"></i> {{ feature }}
+              <i class="pi pi-check-circle"></i>
+              <span>{{ feature }}</span>
             </li>
           </ul>
           <button
-            class="btn"
-            :class="auth.currentTenant?.plan === tier.name ? 'btn--secondary' : tier.highlighted ? 'btn--primary' : 'btn--outline'"
+            class="pricing-card__btn"
+            :class="auth.currentTenant?.plan === tier.name ? 'pricing-card__btn--current' : tier.highlighted ? 'pricing-card__btn--primary' : 'pricing-card__btn--outline'"
             @click="selectPlan(tier)"
           >
-            {{ auth.currentTenant?.plan === tier.name ? 'Aktueller Plan' : 'Auswählen' }}
+            {{ auth.currentTenant?.plan === tier.name ? 'Aktueller Plan' : 'Plan wählen' }}
           </button>
         </div>
       </div>
@@ -462,38 +472,72 @@ function saveSystemSettings() {
 .pricing-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  gap: 1.25rem;
+  align-items: start;
 }
 
 .pricing-card {
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
-  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.pricing-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
 .pricing-card--highlighted {
   border-color: #0B3D91;
-  box-shadow: 0 4px 20px rgba(11, 61, 145, 0.15);
+  box-shadow: 0 8px 30px rgba(11, 61, 145, 0.15);
+  transform: scale(1.03);
+}
+
+.pricing-card--highlighted:hover {
+  transform: scale(1.03) translateY(-2px);
 }
 
 .pricing-card--current {
   border-color: #10b981;
 }
 
-.pricing-card__badge {
-  position: absolute;
-  top: -10px;
-  right: 16px;
-  background: #0B3D91;
+/* Colored top section */
+.pricing-card__top {
+  padding: 1.5rem 1.5rem 1.25rem;
   color: white;
-  font-size: 0.72rem;
+}
+
+.pricing-card__top--tier-0 {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+.pricing-card__top--tier-1 {
+  background: linear-gradient(135deg, #0B3D91 0%, #1a5cc8 100%);
+}
+
+.pricing-card__top--tier-2 {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+}
+
+.pricing-card__badges {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  min-height: 22px;
+}
+
+.pricing-card__badge {
+  font-size: 0.68rem;
   font-weight: 600;
   padding: 0.2rem 0.6rem;
   border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  backdrop-filter: blur(4px);
 }
 
 .pricing-card__badge--current {
@@ -501,58 +545,125 @@ function saveSystemSettings() {
 }
 
 .pricing-card__name {
-  font-size: 1.1rem;
-  color: #1f2937;
-  margin: 0 0 0.25rem;
-}
-
-.pricing-card__description {
-  font-size: 0.82rem;
-  color: #6b7280;
+  font-size: 1.2rem;
+  font-weight: 700;
   margin: 0 0 0.75rem;
-  line-height: 1.4;
 }
 
 .pricing-card__price {
-  margin-bottom: 1rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
 }
 
 .pricing-card__prefix {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 400;
+  opacity: 0.8;
 }
 
 .pricing-card__amount {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #1f2937;
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.pricing-card__price-detail {
+  display: flex;
+  flex-direction: column;
+  margin-left: 0.15rem;
+}
+
+.pricing-card__currency {
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.9;
 }
 
 .pricing-card__period {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+/* Card body */
+.pricing-card__description {
+  padding: 1.25rem 1.5rem 0;
+  font-size: 0.84rem;
   color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.pricing-card__divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 1rem 1.5rem;
 }
 
 .pricing-card__features {
   list-style: none;
-  padding: 0;
-  margin: 0 0 1.25rem;
+  padding: 0 1.5rem;
+  margin: 0 0 1.5rem;
   flex: 1;
 }
 
 .pricing-card__features li {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.3rem 0;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
   font-size: 0.85rem;
+  color: #374151;
+}
+
+.pricing-card__features li i {
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.pricing-card--tier-0 .pricing-card__features li i { color: #6b7280; }
+.pricing-card--tier-1 .pricing-card__features li i { color: #0B3D91; }
+.pricing-card--tier-2 .pricing-card__features li i { color: #7c3aed; }
+
+/* Buttons */
+.pricing-card__btn {
+  margin: 0 1.5rem 1.5rem;
+  padding: 0.7rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.pricing-card__btn--outline {
+  background: white;
+  border: 2px solid #d1d5db;
   color: #4b5563;
 }
 
-.pricing-card__features i {
-  color: #10b981;
-  font-size: 0.75rem;
+.pricing-card__btn--outline:hover {
+  border-color: #6b7280;
+  color: #1f2937;
+}
+
+.pricing-card__btn--primary {
+  background: #0B3D91;
+  color: white;
+}
+
+.pricing-card__btn--primary:hover {
+  background: #092f73;
+}
+
+.pricing-card__btn--current {
+  background: #f0fdf4;
+  color: #047857;
+  border: 2px solid #10b981;
+  cursor: default;
 }
 
 /* Plan badge */
@@ -619,10 +730,19 @@ function saveSystemSettings() {
 
   .pricing-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .pricing-card--highlighted {
+    transform: none;
+  }
+
+  .pricing-card--highlighted:hover {
+    transform: translateY(-2px);
   }
 
   .pricing-card__amount {
-    font-size: 1.4rem;
+    font-size: 2rem;
   }
 
   .form-grid {
