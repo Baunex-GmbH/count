@@ -102,6 +102,7 @@ export interface PricingTier {
   name: string
   preis: number
   preisPrefix?: string
+  description: string
   features: string[]
   highlighted: boolean
 }

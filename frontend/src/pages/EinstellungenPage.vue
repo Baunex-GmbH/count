@@ -36,10 +36,12 @@ const pricingTiers: PricingTier[] = [
   {
     name: 'Basis',
     preis: 29,
+    description: 'Für Unternehmer, die Belege sichern und ihrem Buchhalter übergeben wollen.',
     features: [
-      'Belege hochladen & verwalten',
-      'Bis 50 Belege/Monat',
-      'Übersichtliches Dashboard',
+      'Unbegrenzte Belege hochladen',
+      'Datenexport (CSV, DATEV)',
+      'Buchhalter-Zugang einladen',
+      'Dashboard & Übersicht',
       'Sichere Datenhaltung Schweiz',
       'E-Mail-Support',
     ],
@@ -48,12 +50,13 @@ const pricingTiers: PricingTier[] = [
   {
     name: 'Smart',
     preis: 39,
+    description: 'Für Unternehmer, die Buchhaltungskosten senken wollen.',
     features: [
       'Alles aus Basis',
       'Automatische Texterkennung (OCR)',
-      'KI-gestützte Belegerfassung',
-      'Bis 200 Belege/Monat',
-      'DATEV & CSV Export',
+      'KI-gestützte Verbuchung',
+      'Weniger Aufwand für Ihren Buchhalter',
+      'Kontenrahmen-Verwaltung',
       'Prioritäts-Support',
     ],
     highlighted: true,
@@ -62,13 +65,14 @@ const pricingTiers: PricingTier[] = [
     name: 'Complete',
     preis: 59,
     preisPrefix: 'ab',
+    description: 'Für Unternehmer, die sich nicht um Buchhaltung kümmern wollen.',
     features: [
       'Alles aus Smart',
-      'Kompletter Buchhaltungsservice',
-      'Persönlicher Buchhalter',
-      'Unbegrenzte Belege',
-      'MwSt-Abrechnung inklusive',
-      'Jahresabschluss-Vorbereitung',
+      'Persönlicher Buchhalter inklusive',
+      'Komplette Buchhaltungsführung',
+      'MwSt-Abrechnung & Einreichung',
+      'Jahresabschluss-Erstellung',
+      'Steuererklärung-Vorbereitung',
       'Telefonischer Support',
     ],
     highlighted: false,
@@ -131,6 +135,7 @@ function saveSystemSettings() {
           <div v-if="tier.highlighted" class="pricing-card__badge">Empfohlen</div>
           <div v-if="auth.currentTenant?.plan === tier.name" class="pricing-card__badge pricing-card__badge--current">Aktuell</div>
           <h3 class="pricing-card__name">{{ tier.name }}</h3>
+          <p class="pricing-card__description">{{ tier.description }}</p>
           <div class="pricing-card__price">
             <span v-if="tier.preisPrefix" class="pricing-card__prefix">{{ tier.preisPrefix }} </span>
             <span class="pricing-card__amount">CHF {{ tier.preis }}</span>
@@ -498,7 +503,14 @@ function saveSystemSettings() {
 .pricing-card__name {
   font-size: 1.1rem;
   color: #1f2937;
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.25rem;
+}
+
+.pricing-card__description {
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin: 0 0 0.75rem;
+  line-height: 1.4;
 }
 
 .pricing-card__price {
