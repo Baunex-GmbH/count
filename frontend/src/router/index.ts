@@ -56,7 +56,7 @@ const router = createRouter({
       path: '/einstellungen',
       name: 'einstellungen',
       component: () => import('@/pages/EinstellungenPage.vue'),
-      meta: { requiresAuth: true, requiresTenant: true, minRole: 'Hauptbuchhalter' },
+      meta: { requiresAuth: true, requiresTenant: true },
     },
   ],
 })

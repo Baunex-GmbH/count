@@ -28,9 +28,7 @@ const menuItems = computed(() => {
     items.push({ label: 'Buchhaltung', icon: 'pi pi-calculator', route: '/buchhaltung' })
     items.push({ label: 'Mandanten', icon: 'pi pi-building', route: '/mandanten' })
   }
-  if (isHauptbuchhalter.value) {
-    items.push({ label: 'Einstellungen', icon: 'pi pi-cog', route: '/einstellungen' })
-  }
+  items.push({ label: 'Einstellungen', icon: 'pi pi-cog', route: '/einstellungen' })
   return items
 })
 
