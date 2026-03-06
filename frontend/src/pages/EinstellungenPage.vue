@@ -34,21 +34,43 @@ const tabs = computed(() => {
 // Pricing
 const pricingTiers: PricingTier[] = [
   {
-    name: 'Starter',
+    name: 'Basis',
     preis: 29,
-    features: ['Bis 50 Belege/Monat', '1 Benutzer', 'OCR-Erkennung', 'E-Mail-Support'],
+    features: [
+      'Belege hochladen & verwalten',
+      'Bis 50 Belege/Monat',
+      'Übersichtliches Dashboard',
+      'Sichere Datenhaltung Schweiz',
+      'E-Mail-Support',
+    ],
     highlighted: false,
   },
   {
-    name: 'Professional',
-    preis: 79,
-    features: ['Bis 500 Belege/Monat', '5 Benutzer', 'OCR-Erkennung + KI', 'DATEV-Export', 'Prioritäts-Support', 'Buchhaltungs-Modul'],
+    name: 'Smart',
+    preis: 39,
+    features: [
+      'Alles aus Basis',
+      'Automatische Texterkennung (OCR)',
+      'KI-gestützte Belegerfassung',
+      'Bis 200 Belege/Monat',
+      'DATEV & CSV Export',
+      'Prioritäts-Support',
+    ],
     highlighted: true,
   },
   {
-    name: 'Enterprise',
-    preis: 199,
-    features: ['Unbegrenzte Belege', 'Unbegrenzte Benutzer', 'OCR-Erkennung + KI', 'DATEV + BMD Export', 'Dedizierter Support', 'API-Zugang', 'Custom Kontenrahmen'],
+    name: 'Complete',
+    preis: 59,
+    preisPrefix: 'ab',
+    features: [
+      'Alles aus Smart',
+      'Kompletter Buchhaltungsservice',
+      'Persönlicher Buchhalter',
+      'Unbegrenzte Belege',
+      'MwSt-Abrechnung inklusive',
+      'Jahresabschluss-Vorbereitung',
+      'Telefonischer Support',
+    ],
     highlighted: false,
   },
 ]
@@ -110,6 +132,7 @@ function saveSystemSettings() {
           <div v-if="auth.currentTenant?.plan === tier.name" class="pricing-card__badge pricing-card__badge--current">Aktuell</div>
           <h3 class="pricing-card__name">{{ tier.name }}</h3>
           <div class="pricing-card__price">
+            <span v-if="tier.preisPrefix" class="pricing-card__prefix">{{ tier.preisPrefix }} </span>
             <span class="pricing-card__amount">CHF {{ tier.preis }}</span>
             <span class="pricing-card__period">/ Monat</span>
           </div>
@@ -482,6 +505,12 @@ function saveSystemSettings() {
   margin-bottom: 1rem;
 }
 
+.pricing-card__prefix {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
 .pricing-card__amount {
   font-size: 1.75rem;
   font-weight: 700;
@@ -523,9 +552,9 @@ function saveSystemSettings() {
   white-space: nowrap;
 }
 
-.plan-badge--starter { background: #e5e7eb; color: #4b5563; }
-.plan-badge--professional { background: #dbeafe; color: #1d4ed8; }
-.plan-badge--enterprise { background: #fef3c7; color: #b45309; }
+.plan-badge--basis { background: #e5e7eb; color: #4b5563; }
+.plan-badge--smart { background: #dbeafe; color: #1d4ed8; }
+.plan-badge--complete { background: #fef3c7; color: #b45309; }
 
 /* Mandant settings grid */
 .mandant-settings-grid {

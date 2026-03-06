@@ -122,17 +122,17 @@ function select(tenantId: string) {
   border-radius: 4px;
 }
 
-.plan--starter {
+.plan--basis {
   background: #e5e7eb;
   color: #4b5563;
 }
 
-.plan--professional {
+.plan--smart {
   background: #dbeafe;
   color: #1d4ed8;
 }
 
-.plan--enterprise {
+.plan--complete {
   background: #fef3c7;
   color: #b45309;
 }

@@ -390,9 +390,9 @@ function goToBelege(tenantId: string) {
   flex-shrink: 0;
 }
 
-.plan-badge--starter { background: #e5e7eb; color: #4b5563; }
-.plan-badge--professional { background: #dbeafe; color: #1d4ed8; }
-.plan-badge--enterprise { background: #fef3c7; color: #b45309; }
+.plan-badge--basis { background: #e5e7eb; color: #4b5563; }
+.plan-badge--smart { background: #dbeafe; color: #1d4ed8; }
+.plan-badge--complete { background: #fef3c7; color: #b45309; }
 
 /* Details */
 .mandant-card__details {

@@ -15,7 +15,7 @@ export interface Tenant {
   name: string
   address: string
   uid: string // Swiss UID number
-  plan: 'Starter' | 'Professional' | 'Enterprise'
+  plan: 'Basis' | 'Smart' | 'Complete'
 }
 
 export interface User {
@@ -101,6 +101,7 @@ export interface Notification {
 export interface PricingTier {
   name: string
   preis: number
+  preisPrefix?: string
   features: string[]
   highlighted: boolean
 }
