@@ -1,16 +1,17 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Document, BelegStatus, AuditEntry, OcrResult } from '@/types'
-import { documents as seedDocuments } from '@/data/documents'
+import type { Document, BelegStatus, OcrResult } from '@/types'
 import { useAuthStore } from './auth'
 import { useNotificationStore } from './notifications'
 import { useOcrSimulation } from '@/composables/useOcrSimulation'
+import { apiGetDocuments, apiUpdateDocumentStatus, apiUpdateDocumentOcr, apiGetDocument } from '@/services/api'
 
 export const useDocumentStore = defineStore('documents', () => {
-  const docs = ref<Document[]>([...seedDocuments])
+  const docs = ref<Document[]>([])
+  const loading = ref(false)
   const authStore = useAuthStore()
   const notifications = useNotificationStore()
-  const { generateOcrResult, mutateOcrResult } = useOcrSimulation()
+  const { mutateOcrResult } = useOcrSimulation()
 
   const currentTenantDocs = computed(() => {
     if (!authStore.currentTenant) return []
@@ -38,98 +39,115 @@ export const useDocumentStore = defineStore('documents', () => {
       .reduce((sum, d) => sum + Math.abs(d.ocrResult!.betrag), 0)
   })
 
+  async function fetchDocuments(tenantId: string) {
+    loading.value = true
+    try {
+      const result = await apiGetDocuments(tenantId)
+      // Replace docs for this tenant, keep others
+      const otherDocs = docs.value.filter((d) => d.tenantId !== tenantId)
+      docs.value = [...otherDocs, ...result]
+    } catch (e: any) {
+      notifications.error('Fehler beim Laden', e.message)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchAllUserDocuments() {
+    if (!authStore.currentUser) return
+    loading.value = true
+    try {
+      const allResults: Document[] = []
+      for (const tenantId of authStore.currentUser.tenantIds) {
+        const result = await apiGetDocuments(tenantId)
+        allResults.push(...result)
+      }
+      docs.value = allResults
+    } catch (e: any) {
+      notifications.error('Fehler beim Laden', e.message)
+    } finally {
+      loading.value = false
+    }
+  }
+
   function getById(id: string): Document | undefined {
     return docs.value.find((d) => d.id === id)
   }
 
-  function addAuditEntry(docId: string, action: string, details: string) {
-    const doc = docs.value.find((d) => d.id === docId)
-    if (!doc || !authStore.currentUser) return
-    const entry: AuditEntry = {
-      id: `audit-${Date.now()}`,
-      documentId: docId,
-      timestamp: new Date().toISOString(),
-      userId: authStore.currentUser.id,
-      userName: authStore.currentUser.name,
-      action,
-      details,
+  async function refreshDocument(id: string) {
+    try {
+      const updated = await apiGetDocument(id)
+      const idx = docs.value.findIndex((d) => d.id === id)
+      if (idx >= 0) {
+        docs.value[idx] = updated
+      } else {
+        docs.value.push(updated)
+      }
+    } catch {
+      // ignore
     }
-    doc.auditLog.push(entry)
   }
 
-  function updateOcrResult(docId: string, ocrResult: OcrResult) {
-    const doc = docs.value.find((d) => d.id === docId)
-    if (!doc) return
-    doc.ocrResult = ocrResult
-  }
+  async function setStatus(docId: string, newStatus: BelegStatus) {
+    try {
+      const updated = await apiUpdateDocumentStatus(docId, newStatus)
+      const idx = docs.value.findIndex((d) => d.id === docId)
+      if (idx >= 0) docs.value[idx] = updated
 
-  function setStatus(docId: string, newStatus: BelegStatus) {
-    const doc = docs.value.find((d) => d.id === docId)
-    if (!doc) return
-
-    const oldStatus = doc.status
-    doc.status = newStatus
-
-    const statusLabels: Record<BelegStatus, string> = {
-      'In Pruefung': 'In Prüfung',
-      'Verbucht': 'Verbucht',
+      const statusLabels: Record<BelegStatus, string> = {
+        'In Pruefung': 'In Prüfung',
+        'Verbucht': 'Verbucht',
+      }
+      notifications.success('Status aktualisiert', `Beleg ist jetzt "${statusLabels[newStatus]}"`)
+    } catch (e: any) {
+      notifications.error('Fehler', e.message)
     }
-
-    addAuditEntry(docId, `Status → ${statusLabels[newStatus]}`, `Status von "${statusLabels[oldStatus]}" auf "${statusLabels[newStatus]}" geändert`)
-    notifications.success('Status aktualisiert', `Beleg ist jetzt "${statusLabels[newStatus]}"`)
   }
 
-  function rerunOcr(docId: string) {
+  async function rerunOcr(docId: string) {
     const doc = docs.value.find((d) => d.id === docId)
     if (!doc || !doc.ocrResult) return
 
-    doc.ocrResult = mutateOcrResult(doc.ocrResult)
-    addAuditEntry(docId, 'OCR neu ausgeführt', `Texterkennung wiederholt (${doc.ocrResult.confidence}%)`)
-    notifications.info('OCR aktualisiert', 'Texterkennung wurde erneut durchgeführt')
+    const newOcr = mutateOcrResult(doc.ocrResult)
+    try {
+      const updated = await apiUpdateDocumentOcr(docId, newOcr)
+      const idx = docs.value.findIndex((d) => d.id === docId)
+      if (idx >= 0) docs.value[idx] = updated
+      notifications.info('OCR aktualisiert', 'Texterkennung wurde erneut durchgeführt')
+    } catch (e: any) {
+      notifications.error('Fehler', e.message)
+    }
   }
 
-  function uploadDocument(dateiname: string, dateityp: string, vorschauUrl: string | null, documentId?: string): Document {
-    const id = documentId || `doc-${Date.now()}`
-
-    const newDoc: Document = {
-      id,
-      tenantId: authStore.currentTenant!.id,
-      dateiname,
-      dateityp,
-      uploadDatum: new Date().toISOString(),
-      uploadedBy: authStore.currentUser!.id,
-      status: 'In Pruefung',
-      ocrResult: null,
-      vorschauUrl,
-      auditLog: [
-        {
-          id: `audit-${Date.now()}-1`,
-          documentId: id,
-          timestamp: new Date().toISOString(),
-          userId: authStore.currentUser!.id,
-          userName: authStore.currentUser!.name,
-          action: 'Hochgeladen',
-          details: 'Dokument hochgeladen – wartet auf Prüfung',
-        },
-      ],
+  async function updateOcrResult(docId: string, ocrResult: OcrResult) {
+    try {
+      const updated = await apiUpdateDocumentOcr(docId, ocrResult)
+      const idx = docs.value.findIndex((d) => d.id === docId)
+      if (idx >= 0) docs.value[idx] = updated
+    } catch (e: any) {
+      notifications.error('Fehler', e.message)
     }
+  }
 
-    docs.value.unshift(newDoc)
-    notifications.success('Beleg hochgeladen', `"${dateiname}" wurde erfolgreich hochgeladen`)
-    return newDoc
+  function addUploadedDocument(doc: Document) {
+    docs.value.unshift(doc)
+    notifications.success('Beleg hochgeladen', `"${doc.dateiname}" wurde erfolgreich hochgeladen`)
   }
 
   return {
     docs,
+    loading,
     currentTenantDocs,
     allDocs,
     countByStatus,
     totalBetrag,
     getById,
+    fetchDocuments,
+    fetchAllUserDocuments,
+    refreshDocument,
     setStatus,
     rerunOcr,
     updateOcrResult,
-    uploadDocument,
-    addAuditEntry,
+    addUploadedDocument,
   }
 })

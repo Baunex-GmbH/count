@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, reactive } from 'vue'
+import { computed, ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDocumentStore } from '@/stores/documents'
 import { useJournalStore } from '@/stores/journal'
@@ -16,7 +16,15 @@ const journal = useJournalStore()
 const auth = useAuthStore()
 const notifications = useNotificationStore()
 const auditExpanded = ref(false)
-const kontenrahmen = journal.getKontenrahmen()
+const kontenrahmen = ref<Konto[]>([])
+
+onMounted(async () => {
+  kontenrahmen.value = await journal.getKontenrahmen()
+  // Fetch journal for this tenant if needed
+  if (document.value) {
+    await journal.fetchJournal(document.value.tenantId)
+  }
+})
 
 const docId = computed(() => route.params.id as string)
 const document = computed(() => docs.getById(docId.value))
@@ -50,7 +58,7 @@ const berechneteWerte = computed(() => {
 })
 
 const selectedKonto = computed((): Konto | undefined => {
-  return kontenrahmen.find(k => k.nummer === form.sollKonto)
+  return kontenrahmen.value.find(k => k.nummer === form.sollKonto)
 })
 
 const formValid = computed(() => {
@@ -65,7 +73,7 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-function verbuchen() {
+async function verbuchen() {
   if (!formValid.value || !document.value) return
 
   const brutto = form.brutto!
@@ -73,7 +81,7 @@ function verbuchen() {
   const konto = selectedKonto.value!
 
   // Update document OCR data
-  docs.updateOcrResult(docId.value, {
+  await docs.updateOcrResult(docId.value, {
     betrag: brutto,
     netto,
     mwst,
@@ -95,11 +103,10 @@ function verbuchen() {
   }
   lines.push({ kontoNummer: '2000', kontoBezeichnung: 'Kreditoren (Verbindlichkeiten L+L)', soll: 0, haben: brutto, text: `Verbindlichkeit ${form.lieferant}` })
 
-  journal.createEntryForDocument(docId.value, document.value.tenantId, form.beschreibung || form.lieferant, lines)
-  const entry = journal.getByDocumentId(docId.value)
+  const entry = await journal.createEntryForDocument(docId.value, document.value.tenantId, form.beschreibung || form.lieferant, lines)
   if (entry) journal.confirmEntry(entry.id)
 
-  docs.setStatus(docId.value, 'Verbucht')
+  await docs.setStatus(docId.value, 'Verbucht')
   notifications.success('Verbucht', `Beleg "${document.value.dateiname}" wurde verbucht`)
 }
 </script>
@@ -190,7 +197,7 @@ function verbuchen() {
               <select v-model="form.sollKonto" class="form-input">
                 <option value="" disabled>Konto wählen...</option>
                 <optgroup v-for="kat in ['Aufwand', 'Aktiven']" :key="kat" :label="kat">
-                  <option v-for="k in kontenrahmen.filter(k => k.kategorie === kat)" :key="k.nummer" :value="k.nummer">
+                  <option v-for="k in kontenrahmen.filter((k: Konto) => k.kategorie === kat)" :key="k.nummer" :value="k.nummer">
                     {{ k.nummer }} – {{ k.bezeichnung }}
                   </option>
                 </optgroup>

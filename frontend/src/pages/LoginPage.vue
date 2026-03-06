@@ -1,33 +1,24 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { tenants } from '@/data/tenants'
 
 const auth = useAuthStore()
 const router = useRouter()
-const selectedEmail = ref('')
-const password = ref('demo')
+const email = ref('')
+const password = ref('count123')
 const errorMsg = ref('')
-const demoUsers = auth.getDemoUsers()
+const isLoading = ref(false)
 
-const groupedUsers = computed(() => {
-  const treuhand = demoUsers.filter(u => u.role === 'Hauptbuchhalter' || u.role === 'Buchhalter')
-  const mandanten = demoUsers.filter(u => u.role === 'User')
-  return { treuhand, mandanten }
-})
-
-function getTenantName(tenantId: string): string {
-  return tenants.find(t => t.id === tenantId)?.name || ''
-}
-
-function handleLogin() {
+async function handleLogin() {
   errorMsg.value = ''
-  if (!selectedEmail.value) {
-    errorMsg.value = 'Bitte wählen Sie einen Benutzer aus.'
+  if (!email.value) {
+    errorMsg.value = 'Bitte geben Sie Ihre E-Mail ein.'
     return
   }
-  const success = auth.login(selectedEmail.value, password.value)
+  isLoading.value = true
+  const success = await auth.login(email.value, password.value)
+  isLoading.value = false
   if (success) {
     if (auth.hasTenantSelected) {
       router.push('/')
@@ -35,7 +26,7 @@ function handleLogin() {
       router.push('/tenant-select')
     }
   } else {
-    errorMsg.value = 'Login fehlgeschlagen.'
+    errorMsg.value = 'Login fehlgeschlagen. Prüfen Sie E-Mail und Passwort.'
   }
 }
 </script>
@@ -46,36 +37,24 @@ function handleLogin() {
 
     <div class="login__demo-hint">
       <i class="pi pi-info-circle"></i>
-      Demo-Modus: Wählen Sie einen Benutzer, Passwort beliebig.
+      Demo: emre.oezbek@count.ch / count123
     </div>
 
     <form @submit.prevent="handleLogin" class="login__form">
       <div class="form-group">
-        <label class="form-label">Benutzer</label>
-        <select v-model="selectedEmail" class="form-select">
-          <option value="" disabled>Benutzer auswählen...</option>
-          <optgroup label="Treuhand / Buchhaltung">
-            <option v-for="user in groupedUsers.treuhand" :key="user.id" :value="user.email">
-              {{ user.name }} – {{ user.role }}
-            </option>
-          </optgroup>
-          <optgroup label="Mandanten">
-            <option v-for="user in groupedUsers.mandanten" :key="user.id" :value="user.email">
-              {{ user.name }} – {{ getTenantName(user.tenantIds[0]) }}
-            </option>
-          </optgroup>
-        </select>
+        <label class="form-label">E-Mail</label>
+        <input v-model="email" type="email" class="form-input" placeholder="E-Mail Adresse" autocomplete="email" />
       </div>
 
       <div class="form-group">
         <label class="form-label">Passwort</label>
-        <input v-model="password" type="password" class="form-input" placeholder="Beliebiges Passwort" />
+        <input v-model="password" type="password" class="form-input" placeholder="Passwort" autocomplete="current-password" />
       </div>
 
       <div v-if="errorMsg" class="login__error">{{ errorMsg }}</div>
 
-      <button type="submit" class="login__btn">
-        <i class="pi pi-sign-in"></i> Anmelden
+      <button type="submit" class="login__btn" :disabled="isLoading">
+        <i class="pi pi-sign-in"></i> {{ isLoading ? 'Anmelden...' : 'Anmelden' }}
       </button>
     </form>
   </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDocumentStore } from '@/stores/documents'
@@ -9,6 +9,12 @@ import SwissTrustBadge from '@/components/SwissTrustBadge.vue'
 const auth = useAuthStore()
 const docs = useDocumentStore()
 const router = useRouter()
+
+onMounted(() => {
+  if (auth.currentTenant) {
+    docs.fetchDocuments(auth.currentTenant.id)
+  }
+})
 
 const greeting = computed(() => {
   const hour = new Date().getHours()

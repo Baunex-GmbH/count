@@ -61,8 +61,18 @@ const roleLevel: Record<string, number> = {
   'Hauptbuchhalter': 2,
 }
 
-router.beforeEach((to) => {
+let sessionRestored = false
+
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
+
+  // Try to restore session from stored token on first navigation
+  if (!sessionRestored) {
+    sessionRestored = true
+    if (!auth.isAuthenticated && localStorage.getItem('count_token')) {
+      await auth.restoreSession()
+    }
+  }
 
   if (to.meta.requiresAuth !== false && !auth.isAuthenticated) {
     return { name: 'login' }

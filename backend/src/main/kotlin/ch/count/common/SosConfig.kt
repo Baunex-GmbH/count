@@ -1,4 +1,4 @@
-package ch.count
+package ch.count.common
 
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Produces

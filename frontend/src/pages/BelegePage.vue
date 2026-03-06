@@ -1,13 +1,21 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { useDocumentStore } from '@/stores/documents'
 import type { BelegStatus } from '@/types'
 import StatusBadge from '@/components/StatusBadge.vue'
 import UploadModal from '@/components/UploadModal.vue'
 
 const router = useRouter()
+const auth = useAuthStore()
 const docs = useDocumentStore()
+
+onMounted(() => {
+  if (auth.currentTenant) {
+    docs.fetchDocuments(auth.currentTenant.id)
+  }
+})
 const activeFilter = ref<'alle' | BelegStatus>('alle')
 const showUploadModal = ref(false)
 

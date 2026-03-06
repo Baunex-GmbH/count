@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useDocumentStore } from '@/stores/documents'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notifications'
-import { uploadFile, getFileUrl } from '@/services/api'
+import { uploadFile } from '@/services/api'
 
 const props = defineProps<{ visible: boolean }>()
 const emit = defineEmits<{ 'update:visible': [value: boolean]; uploaded: [] }>()
@@ -75,8 +75,8 @@ async function doUpload() {
     })
 
     uploadProgress.value = 100
-    const fileUrl = getFileUrl(tenantId, documentId, file.name)
-    documentStore.uploadDocument(file.name, ext, fileUrl, documentId)
+    // Document was created by backend during upload, refresh from API
+    await documentStore.refreshDocument(documentId)
 
     setTimeout(() => {
       isUploading.value = false

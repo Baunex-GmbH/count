@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { useJournalStore } from '@/stores/journal'
 import { useNotificationStore } from '@/stores/notifications'
 
+const auth = useAuthStore()
 const journal = useJournalStore()
 const notifications = useNotificationStore()
+
+onMounted(() => {
+  if (auth.currentTenant) {
+    journal.fetchJournal(auth.currentTenant.id)
+  }
+})
 
 const flatLines = computed(() => {
   const lines: {

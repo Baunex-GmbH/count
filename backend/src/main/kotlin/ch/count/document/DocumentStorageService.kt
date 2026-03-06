@@ -1,4 +1,4 @@
-package ch.count
+package ch.count.document
 
 import jakarta.enterprise.context.ApplicationScoped
 import org.eclipse.microprofile.config.inject.ConfigProperty

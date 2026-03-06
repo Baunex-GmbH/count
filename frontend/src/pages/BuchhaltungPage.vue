@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import { useDocumentStore } from '@/stores/documents'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notifications'
-import { tenants } from '@/data/tenants'
 import StatusBadge from '@/components/StatusBadge.vue'
 
 const router = useRouter()
@@ -15,6 +14,10 @@ const selectedDocs = ref<Set<string>>(new Set())
 const showRueckfrageDialog = ref(false)
 const rueckfrageText = ref('')
 
+// Fetch all user documents on mount
+import { onMounted } from 'vue'
+onMounted(() => docs.fetchAllUserDocuments())
+
 const allDocsSorted = computed(() => {
   const userTenants = auth.currentUser?.tenantIds || []
   return docs.allDocs
@@ -23,7 +26,7 @@ const allDocsSorted = computed(() => {
 })
 
 function getTenantName(tenantId: string): string {
-  return tenants.find((t) => t.id === tenantId)?.name || tenantId
+  return auth.allTenants.find((t) => t.id === tenantId)?.name || tenantId
 }
 
 function formatCHF(value: number): string {

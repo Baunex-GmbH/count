@@ -20,6 +20,21 @@ dependencies {
     implementation("io.quarkus:quarkus-arc")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("software.amazon.awssdk:s3:2.29.51")
+
+    // Database
+    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
+    implementation("io.quarkus:quarkus-jdbc-postgresql")
+    implementation("io.quarkus:quarkus-flyway")
+
+    // JWT Auth
+    implementation("io.quarkus:quarkus-smallrye-jwt")
+    implementation("io.quarkus:quarkus-smallrye-jwt-build")
+
+    // Password hashing
+    implementation("org.mindrot:jbcrypt:0.4")
+
+    // Jackson Kotlin
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 }
 
 group = "ch.count"

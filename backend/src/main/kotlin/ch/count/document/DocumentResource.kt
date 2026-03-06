@@ -1,15 +1,21 @@
-package ch.count
+package ch.count.document
 
+import jakarta.annotation.security.RolesAllowed
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import org.jboss.resteasy.reactive.multipart.FileUpload
+import org.eclipse.microprofile.jwt.JsonWebToken
 import org.jboss.resteasy.reactive.RestForm
+import org.jboss.resteasy.reactive.multipart.FileUpload
 import java.io.FileInputStream
 
 @Path("/api/documents")
+@Produces(MediaType.APPLICATION_JSON)
+@RolesAllowed("Hauptbuchhalter", "Buchhalter", "User")
 class DocumentResource(
-    private val storage: DocumentStorageService,
+    private val documentService: DocumentService,
+    private val storageService: DocumentStorageService,
+    private val jwt: JsonWebToken,
 ) {
     companion object {
         private val ALLOWED_TYPES = setOf(
@@ -19,10 +25,20 @@ class DocumentResource(
         )
     }
 
+    @GET
+    fun list(@QueryParam("tenantId") tenantId: String): List<DocumentDto> {
+        return documentService.listByTenant(jwt.subject, tenantId)
+    }
+
+    @GET
+    @Path("/{id}")
+    fun getById(@PathParam("id") id: String): DocumentDto {
+        return documentService.findById(jwt.subject, id)
+    }
+
     @POST
     @Path("/upload")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Produces(MediaType.APPLICATION_JSON)
     fun upload(
         @RestForm file: FileUpload,
         @RestForm tenantId: String,
@@ -43,18 +59,41 @@ class DocumentResource(
         }
 
         val filename = file.fileName()
+        val dateityp = filename.substringAfterLast('.', "pdf")
+
         FileInputStream(file.filePath().toFile()).use { input ->
-            storage.upload(tenantId, documentId, filename, contentType, input, size)
+            storageService.upload(tenantId, documentId, filename, contentType, input, size)
         }
 
-        return Response.ok(
-            mapOf(
-                "status" to "ok",
-                "tenantId" to tenantId,
-                "documentId" to documentId,
-                "filename" to filename,
-            )
-        ).build()
+        val doc = documentService.createFromUpload(
+            documentId = documentId,
+            tenantId = tenantId,
+            userId = jwt.subject,
+            dateiname = filename,
+            dateityp = dateityp,
+        )
+
+        return Response.ok(doc).build()
+    }
+
+    @PUT
+    @Path("/{id}/status")
+    @Consumes(MediaType.APPLICATION_JSON)
+    fun updateStatus(
+        @PathParam("id") id: String,
+        request: StatusUpdateRequest,
+    ): DocumentDto {
+        return documentService.updateStatus(jwt.subject, id, request.status)
+    }
+
+    @PUT
+    @Path("/{id}/ocr")
+    @Consumes(MediaType.APPLICATION_JSON)
+    fun updateOcr(
+        @PathParam("id") id: String,
+        request: OcrUpdateRequest,
+    ): DocumentDto {
+        return documentService.updateOcr(jwt.subject, id, request.ocrResult)
     }
 
     @GET
@@ -65,7 +104,7 @@ class DocumentResource(
         @PathParam("filename") filename: String,
     ): Response {
         return try {
-            val stored = storage.download(tenantId, documentId, filename)
+            val stored = storageService.download(tenantId, documentId, filename)
             Response.ok(stored.stream, stored.contentType)
                 .header("Cache-Control", "private, max-age=3600")
                 .build()
