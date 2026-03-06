@@ -17,6 +17,7 @@ const auth = useAuthStore()
 const notifications = useNotificationStore()
 const auditExpanded = ref(false)
 const kontenrahmen = ref<Konto[]>([])
+const previewFailed = ref(false)
 
 onMounted(async () => {
   kontenrahmen.value = await journal.getKontenrahmen()
@@ -123,6 +124,9 @@ async function verbuchen() {
         <i class="pi pi-arrow-left"></i> Zurück
       </button>
       <div class="detail__toolbar-right">
+        <a v-if="document.vorschauUrl" :href="document.vorschauUrl" :download="document.dateiname" class="btn btn--outline">
+          <i class="pi pi-download"></i> Download
+        </a>
         <StatusBadge :status="document.status" />
       </div>
     </div>
@@ -133,11 +137,11 @@ async function verbuchen() {
       <!-- Left: Preview -->
       <div class="detail__preview">
         <div class="preview-panel">
-          <div v-if="document.vorschauUrl && document.dateityp === 'pdf'" class="preview-panel__pdf">
-            <iframe :src="document.vorschauUrl" type="application/pdf"></iframe>
+          <div v-if="document.vorschauUrl && !previewFailed && document.dateityp === 'pdf'" class="preview-panel__pdf">
+            <iframe :src="document.vorschauUrl" type="application/pdf" @error="previewFailed = true"></iframe>
           </div>
-          <div v-else-if="document.vorschauUrl" class="preview-panel__image">
-            <img :src="document.vorschauUrl" alt="Vorschau" />
+          <div v-else-if="document.vorschauUrl && !previewFailed && document.dateityp !== 'pdf'" class="preview-panel__image">
+            <img :src="document.vorschauUrl" alt="Vorschau" @error="previewFailed = true" />
           </div>
           <div v-else class="preview-panel__placeholder">
             <i :class="document.dateityp === 'pdf' ? 'pi pi-file-pdf' : 'pi pi-image'"></i>
@@ -747,5 +751,17 @@ async function verbuchen() {
 .btn--secondary {
   background: #f3f4f6;
   color: #4b5563;
+}
+
+.btn--outline {
+  background: white;
+  border: 1px solid #e5e7eb;
+  color: #4b5563;
+  text-decoration: none;
+}
+
+.btn--outline:hover {
+  border-color: #0B3D91;
+  color: #0B3D91;
 }
 </style>

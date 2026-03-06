@@ -112,7 +112,7 @@ class DocumentService(
         uploadedBy = entity.uploadedBy,
         status = entity.status,
         ocrResult = entity.ocrResult,
-        vorschauUrl = entity.vorschauUrl,
+        vorschauUrl = "/api/documents/${entity.tenantId}/${entity.id}/${entity.dateiname}",
         auditLog = entity.auditLog.map { toAuditDto(it) },
     )
 

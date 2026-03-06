@@ -1,5 +1,6 @@
 package ch.count.document
 
+import jakarta.annotation.security.PermitAll
 import jakarta.annotation.security.RolesAllowed
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
@@ -98,6 +99,7 @@ class DocumentResource(
 
     @GET
     @Path("/{tenantId}/{documentId}/{filename}")
+    @PermitAll
     fun download(
         @PathParam("tenantId") tenantId: String,
         @PathParam("documentId") documentId: String,
