@@ -97,6 +97,27 @@ class DocumentResource(
         return documentService.updateOcr(jwt.subject, id, request.ocrResult)
     }
 
+    @PUT
+    @Path("/{id}/archive")
+    fun archive(@PathParam("id") id: String): DocumentDto {
+        return documentService.archive(jwt.subject, id)
+    }
+
+    @PUT
+    @Path("/{id}/restore")
+    @RolesAllowed("Hauptbuchhalter", "Buchhalter")
+    fun restore(@PathParam("id") id: String): DocumentDto {
+        return documentService.restore(jwt.subject, id)
+    }
+
+    @DELETE
+    @Path("/{id}")
+    @RolesAllowed("Hauptbuchhalter")
+    fun delete(@PathParam("id") id: String): Response {
+        documentService.delete(jwt.subject, id, storageService)
+        return Response.noContent().build()
+    }
+
     @GET
     @Path("/{tenantId}/{documentId}/{filename}")
     @PermitAll

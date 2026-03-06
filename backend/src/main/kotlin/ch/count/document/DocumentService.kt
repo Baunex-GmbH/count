@@ -103,6 +103,76 @@ class DocumentService(
         return findById(userId, documentId)
     }
 
+    @Transactional
+    fun archive(userId: String, documentId: String): DocumentDto {
+        val doc = documentRepository.findById(documentId)
+            ?: throw NotFoundException("Dokument nicht gefunden")
+        tenantService.requireAccess(userId, doc.tenantId)
+
+        val user = userRepository.findById(userId)
+            ?: throw NotFoundException("Benutzer nicht gefunden")
+
+        doc.status = "Archiviert"
+        documentRepository.persist(doc)
+
+        val audit = AuditEntryEntity().apply {
+            this.id = "audit-${UUID.randomUUID().toString().take(8)}"
+            this.documentId = documentId
+            this.timestamp = LocalDateTime.now()
+            this.userId = userId
+            this.userName = user.name
+            this.action = "Archiviert"
+            this.details = "Beleg wurde archiviert"
+        }
+        auditEntryRepository.persist(audit)
+
+        return findById(userId, documentId)
+    }
+
+    @Transactional
+    fun restore(userId: String, documentId: String): DocumentDto {
+        val doc = documentRepository.findById(documentId)
+            ?: throw NotFoundException("Dokument nicht gefunden")
+        tenantService.requireAccess(userId, doc.tenantId)
+
+        val user = userRepository.findById(userId)
+            ?: throw NotFoundException("Benutzer nicht gefunden")
+
+        doc.status = if (doc.ocrResult != null) "Verbucht" else "In Pruefung"
+        documentRepository.persist(doc)
+
+        val audit = AuditEntryEntity().apply {
+            this.id = "audit-${UUID.randomUUID().toString().take(8)}"
+            this.documentId = documentId
+            this.timestamp = LocalDateTime.now()
+            this.userId = userId
+            this.userName = user.name
+            this.action = "Wiederhergestellt"
+            this.details = "Beleg wurde wiederhergestellt"
+        }
+        auditEntryRepository.persist(audit)
+
+        return findById(userId, documentId)
+    }
+
+    @Transactional
+    fun delete(userId: String, documentId: String, storageService: DocumentStorageService) {
+        val doc = documentRepository.findById(documentId)
+            ?: throw NotFoundException("Dokument nicht gefunden")
+        tenantService.requireAccess(userId, doc.tenantId)
+
+        // Delete S3 file
+        try {
+            storageService.delete(doc.tenantId, doc.id, doc.dateiname)
+        } catch (_: Exception) {
+            // File may not exist in S3 (seed data)
+        }
+
+        // Delete audit entries first (FK)
+        auditEntryRepository.delete("documentId", documentId)
+        documentRepository.deleteById(documentId)
+    }
+
     private fun toDto(entity: DocumentEntity) = DocumentDto(
         id = entity.id,
         tenantId = entity.tenantId,

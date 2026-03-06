@@ -16,23 +16,26 @@ onMounted(() => {
     docs.fetchDocuments(auth.currentTenant.id)
   }
 })
-const activeFilter = ref<'alle' | BelegStatus>('alle')
+const activeFilter = ref<'alle' | 'archiviert' | BelegStatus>('alle')
 const showUploadModal = ref(false)
 
 const filteredDocs = computed(() => {
+  if (activeFilter.value === 'archiviert') return docs.archivedDocs
   if (activeFilter.value === 'alle') return docs.currentTenantDocs
   return docs.currentTenantDocs.filter((d) => d.status === activeFilter.value)
 })
 
-const filters: { key: 'alle' | BelegStatus; label: string }[] = [
+const filters: { key: 'alle' | 'archiviert' | BelegStatus; label: string }[] = [
   { key: 'alle', label: 'Alle' },
   { key: 'In Pruefung', label: 'In Prüfung' },
   { key: 'Verbucht', label: 'Verbucht' },
+  { key: 'archiviert', label: 'Archiviert' },
 ]
 
-function filterCount(key: 'alle' | BelegStatus): number {
+function filterCount(key: 'alle' | 'archiviert' | BelegStatus): number {
   if (key === 'alle') return docs.countByStatus.alle
   if (key === 'In Pruefung') return docs.countByStatus.inPruefung
+  if (key === 'archiviert') return docs.archivedDocs.length
   return docs.countByStatus.verbucht
 }
 

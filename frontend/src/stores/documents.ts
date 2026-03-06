@@ -4,7 +4,7 @@ import type { Document, BelegStatus, OcrResult } from '@/types'
 import { useAuthStore } from './auth'
 import { useNotificationStore } from './notifications'
 import { useOcrSimulation } from '@/composables/useOcrSimulation'
-import { apiGetDocuments, apiUpdateDocumentStatus, apiUpdateDocumentOcr, apiGetDocument } from '@/services/api'
+import { apiGetDocuments, apiUpdateDocumentStatus, apiUpdateDocumentOcr, apiGetDocument, apiArchiveDocument, apiRestoreDocument, apiDeleteDocument } from '@/services/api'
 
 export const useDocumentStore = defineStore('documents', () => {
   const docs = ref<Document[]>([])
@@ -16,7 +16,14 @@ export const useDocumentStore = defineStore('documents', () => {
   const currentTenantDocs = computed(() => {
     if (!authStore.currentTenant) return []
     return docs.value
-      .filter((d) => d.tenantId === authStore.currentTenant!.id)
+      .filter((d) => d.tenantId === authStore.currentTenant!.id && d.status !== 'Archiviert')
+      .sort((a, b) => new Date(b.uploadDatum).getTime() - new Date(a.uploadDatum).getTime())
+  })
+
+  const archivedDocs = computed(() => {
+    if (!authStore.currentTenant) return []
+    return docs.value
+      .filter((d) => d.tenantId === authStore.currentTenant!.id && d.status === 'Archiviert')
       .sort((a, b) => new Date(b.uploadDatum).getTime() - new Date(a.uploadDatum).getTime())
   })
 
@@ -97,6 +104,7 @@ export const useDocumentStore = defineStore('documents', () => {
       const statusLabels: Record<BelegStatus, string> = {
         'In Pruefung': 'In Prüfung',
         'Verbucht': 'Verbucht',
+        'Archiviert': 'Archiviert',
       }
       notifications.success('Status aktualisiert', `Beleg ist jetzt "${statusLabels[newStatus]}"`)
     } catch (e: any) {
@@ -129,6 +137,38 @@ export const useDocumentStore = defineStore('documents', () => {
     }
   }
 
+  async function archiveDocument(docId: string) {
+    try {
+      const updated = await apiArchiveDocument(docId)
+      const idx = docs.value.findIndex((d) => d.id === docId)
+      if (idx >= 0) docs.value[idx] = updated
+      notifications.success('Archiviert', 'Beleg wurde archiviert')
+    } catch (e: any) {
+      notifications.error('Fehler', e.message)
+    }
+  }
+
+  async function restoreDocument(docId: string) {
+    try {
+      const updated = await apiRestoreDocument(docId)
+      const idx = docs.value.findIndex((d) => d.id === docId)
+      if (idx >= 0) docs.value[idx] = updated
+      notifications.success('Wiederhergestellt', 'Beleg wurde wiederhergestellt')
+    } catch (e: any) {
+      notifications.error('Fehler', e.message)
+    }
+  }
+
+  async function deleteDocument(docId: string) {
+    try {
+      await apiDeleteDocument(docId)
+      docs.value = docs.value.filter((d) => d.id !== docId)
+      notifications.success('Gelöscht', 'Beleg wurde endgültig gelöscht')
+    } catch (e: any) {
+      notifications.error('Fehler', e.message)
+    }
+  }
+
   function addUploadedDocument(doc: Document) {
     docs.value.unshift(doc)
     notifications.success('Beleg hochgeladen', `"${doc.dateiname}" wurde erfolgreich hochgeladen`)
@@ -138,6 +178,7 @@ export const useDocumentStore = defineStore('documents', () => {
     docs,
     loading,
     currentTenantDocs,
+    archivedDocs,
     allDocs,
     countByStatus,
     totalBetrag,
@@ -148,6 +189,9 @@ export const useDocumentStore = defineStore('documents', () => {
     setStatus,
     rerunOcr,
     updateOcrResult,
+    archiveDocument,
+    restoreDocument,
+    deleteDocument,
     addUploadedDocument,
   }
 })

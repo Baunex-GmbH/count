@@ -4,6 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import java.io.InputStream
@@ -31,6 +32,16 @@ class DocumentStorageService(
                 .contentType(contentType)
                 .build(),
             RequestBody.fromInputStream(data, size),
+        )
+    }
+
+    fun delete(tenantId: String, documentId: String, filename: String) {
+        val key = "$tenantId/$documentId/$filename"
+        s3.deleteObject(
+            DeleteObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .build()
         )
     }
 

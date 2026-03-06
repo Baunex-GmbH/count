@@ -75,6 +75,33 @@ export async function apiUpdateDocumentOcr(id: string, ocrResult: any) {
   return handleResponse<any>(res)
 }
 
+export async function apiArchiveDocument(id: string) {
+  const res = await fetch(`${API_BASE}/documents/${id}/archive`, {
+    method: 'PUT',
+    headers: authHeaders(),
+  })
+  return handleResponse<any>(res)
+}
+
+export async function apiRestoreDocument(id: string) {
+  const res = await fetch(`${API_BASE}/documents/${id}/restore`, {
+    method: 'PUT',
+    headers: authHeaders(),
+  })
+  return handleResponse<any>(res)
+}
+
+export async function apiDeleteDocument(id: string) {
+  const res = await fetch(`${API_BASE}/documents/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error || `Request failed (${res.status})`)
+  }
+}
+
 // Journal
 export async function apiGetJournal(tenantId: string) {
   const res = await fetch(`${API_BASE}/journal?tenantId=${tenantId}`, { headers: authHeaders() })

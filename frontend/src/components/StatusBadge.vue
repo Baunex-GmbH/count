@@ -8,6 +8,7 @@ const config = computed(() => {
   const map: Record<BelegStatus, { label: string; class: string }> = {
     'In Pruefung': { label: 'In Prüfung', class: 'badge--pruefung' },
     'Verbucht': { label: 'Verbucht', class: 'badge--verbucht' },
+    'Archiviert': { label: 'Archiviert', class: 'badge--archiviert' },
   }
   return map[props.status]
 })
@@ -36,5 +37,10 @@ const config = computed(() => {
 .badge--verbucht {
   background: #d1fae5;
   color: #047857;
+}
+
+.badge--archiviert {
+  background: #e5e7eb;
+  color: #6b7280;
 }
 </style>

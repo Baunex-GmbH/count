@@ -37,7 +37,30 @@ const isBuchhalter = computed(() => {
   return role === 'Buchhalter' || role === 'Hauptbuchhalter'
 })
 
+const isHauptbuchhalter = computed(() => auth.currentUser?.role === 'Hauptbuchhalter')
+
 const canEdit = computed(() => isBuchhalter.value && document.value?.status === 'In Pruefung')
+
+const isArchived = computed(() => document.value?.status === 'Archiviert')
+
+const showDeleteConfirm = ref(false)
+
+async function archiveBeleg() {
+  if (!document.value) return
+  await docs.archiveDocument(docId.value)
+}
+
+async function restoreBeleg() {
+  if (!document.value) return
+  await docs.restoreDocument(docId.value)
+}
+
+async function deleteBeleg() {
+  if (!document.value) return
+  await docs.deleteDocument(docId.value)
+  showDeleteConfirm.value = false
+  router.push('/belege')
+}
 
 // Booking form
 const mwstOptions: MwstSatz[] = [8.1, 2.6, 3.8, 0]
@@ -127,6 +150,15 @@ async function verbuchen() {
         <a v-if="document.vorschauUrl" :href="document.vorschauUrl" :download="document.dateiname" class="btn btn--outline">
           <i class="pi pi-download"></i> Download
         </a>
+        <button v-if="isArchived && isBuchhalter" class="btn btn--outline" @click="restoreBeleg">
+          <i class="pi pi-replay"></i> Wiederherstellen
+        </button>
+        <button v-if="isArchived && isHauptbuchhalter" class="btn btn--danger-outline" @click="showDeleteConfirm = true">
+          <i class="pi pi-trash"></i> Löschen
+        </button>
+        <button v-if="!isArchived" class="btn btn--outline" @click="archiveBeleg">
+          <i class="pi pi-inbox"></i> Archivieren
+        </button>
         <StatusBadge :status="document.status" />
       </div>
     </div>
@@ -349,6 +381,30 @@ async function verbuchen() {
         </div>
       </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <Teleport to="body">
+      <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm = false">
+        <div class="modal">
+          <div class="modal__header">
+            <h3>Beleg endgültig löschen?</h3>
+          </div>
+          <div class="modal__body">
+            <p class="modal__warning">
+              <i class="pi pi-exclamation-triangle"></i>
+              Diese Aktion kann nicht rückgängig gemacht werden. Der Beleg und die zugehörige Datei werden unwiderruflich gelöscht.
+            </p>
+            <p class="modal__filename">{{ document.dateiname }}</p>
+            <div class="modal__actions">
+              <button class="btn btn--secondary" @click="showDeleteConfirm = false">Abbrechen</button>
+              <button class="btn btn--danger" @click="deleteBeleg">
+                <i class="pi pi-trash"></i> Endgültig löschen
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -763,5 +819,88 @@ async function verbuchen() {
 .btn--outline:hover {
   border-color: #0B3D91;
   color: #0B3D91;
+}
+
+.btn--danger-outline {
+  background: white;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+}
+
+.btn--danger-outline:hover {
+  background: #fef2f2;
+  border-color: #dc2626;
+}
+
+.btn--danger {
+  background: #dc2626;
+  color: white;
+}
+
+.btn--danger:hover {
+  background: #b91c1c;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modal__header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal__header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #1f2937;
+}
+
+.modal__body {
+  padding: 1.5rem;
+}
+
+.modal__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  color: #dc2626;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin: 0 0 1rem;
+}
+
+.modal__warning i {
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+
+.modal__filename {
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1.25rem;
+  font-size: 0.9rem;
+}
+
+.modal__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
 }
 </style>
