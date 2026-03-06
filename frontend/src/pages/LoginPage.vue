@@ -34,7 +34,9 @@ async function handleLogin() {
   const success = await auth.login(email.value, password.value)
   isLoading.value = false
   if (success) {
-    if (auth.hasTenantSelected) {
+    if (auth.isBuchhalter) {
+      router.push('/mandanten')
+    } else if (auth.hasTenantSelected) {
       router.push('/')
     } else {
       router.push('/tenant-select')

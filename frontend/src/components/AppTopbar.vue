@@ -12,8 +12,12 @@ function logout() {
 }
 
 function switchTenant() {
-  auth.currentTenant = null
-  router.push('/tenant-select')
+  if (auth.isBuchhalter) {
+    router.push('/mandanten')
+  } else {
+    auth.currentTenant = null
+    router.push('/tenant-select')
+  }
 }
 </script>
 

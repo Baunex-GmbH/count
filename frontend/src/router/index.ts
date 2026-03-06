@@ -96,8 +96,14 @@ router.beforeEach(async (to) => {
     }
   }
 
+  // Redirect Buchhalter away from tenant-select to mandanten page
+  if (to.name === 'tenant-select' && auth.isBuchhalter) {
+    return { name: 'mandanten' }
+  }
+
   // Redirect authenticated users away from login
   if (to.name === 'login' && auth.isAuthenticated) {
+    if (auth.isBuchhalter) return { name: 'mandanten' }
     if (auth.hasTenantSelected) return { name: 'dashboard' }
     return { name: 'tenant-select' }
   }

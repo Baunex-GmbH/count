@@ -15,6 +15,23 @@ export const useAuthStore = defineStore('auth', () => {
     return allTenants.value.filter((t) => currentUser.value!.tenantIds.includes(t.id))
   })
 
+  const isBuchhalter = computed(() => {
+    const role = currentUser.value?.role
+    return role === 'Buchhalter' || role === 'Hauptbuchhalter'
+  })
+
+  function autoSelectTenant() {
+    if (!currentUser.value) return
+    const userTenants = allTenants.value.filter((t) => currentUser.value!.tenantIds.includes(t.id))
+    // Buchhalter: always auto-select first tenant so sidebar works
+    // Normal users: only auto-select if exactly one tenant
+    if (isBuchhalter.value && userTenants.length > 0) {
+      currentTenant.value = userTenants[0]
+    } else if (userTenants.length === 1) {
+      currentTenant.value = userTenants[0]
+    }
+  }
+
   async function login(email: string, password: string): Promise<boolean> {
     try {
       const result = await apiLogin(email, password)
@@ -24,10 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
       const tenants = await apiGetTenants()
       allTenants.value = tenants as Tenant[]
 
-      // Auto-select tenant if only one
-      if (currentUser.value!.tenantIds.length === 1) {
-        currentTenant.value = allTenants.value.find((t) => t.id === currentUser.value!.tenantIds[0]) || null
-      }
+      autoSelectTenant()
       return true
     } catch {
       return false
@@ -40,9 +54,7 @@ export const useAuthStore = defineStore('auth', () => {
       currentUser.value = user as User
       const tenants = await apiGetTenants()
       allTenants.value = tenants as Tenant[]
-      if (currentUser.value!.tenantIds.length === 1) {
-        currentTenant.value = allTenants.value.find((t) => t.id === currentUser.value!.tenantIds[0]) || null
-      }
+      autoSelectTenant()
       return true
     } catch {
       clearToken()
@@ -70,6 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
     allTenants,
     isAuthenticated,
     hasTenantSelected,
+    isBuchhalter,
     availableTenants,
     login,
     restoreSession,
