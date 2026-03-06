@@ -4,15 +4,26 @@ import AppSidebar from '@/components/AppSidebar.vue'
 import AppTopbar from '@/components/AppTopbar.vue'
 
 const sidebarCollapsed = ref(false)
+const mobileMenuOpen = ref(false)
 
 function toggleSidebar() {
-  sidebarCollapsed.value = !sidebarCollapsed.value
+  if (window.innerWidth <= 768) {
+    mobileMenuOpen.value = !mobileMenuOpen.value
+  } else {
+    sidebarCollapsed.value = !sidebarCollapsed.value
+  }
+}
+
+function closeMobileMenu() {
+  mobileMenuOpen.value = false
 }
 </script>
 
 <template>
   <div class="default-layout" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
-    <AppSidebar :collapsed="sidebarCollapsed" />
+    <!-- Mobile overlay -->
+    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="closeMobileMenu"></div>
+    <AppSidebar :collapsed="sidebarCollapsed" :class="{ 'sidebar--mobile-open': mobileMenuOpen }" @navigate="closeMobileMenu" />
     <div class="default-layout__main">
       <AppTopbar @toggle-sidebar="toggleSidebar" />
       <main class="default-layout__content">
@@ -35,6 +46,7 @@ function toggleSidebar() {
   transition: margin-left 0.2s ease;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .sidebar-collapsed .default-layout__main {
@@ -47,9 +59,25 @@ function toggleSidebar() {
   max-width: 1400px;
 }
 
+.mobile-overlay {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .default-layout__main {
-    margin-left: 64px;
+    margin-left: 0;
+  }
+
+  .default-layout__content {
+    padding: 1rem;
+  }
+
+  .mobile-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
   }
 }
 </style>

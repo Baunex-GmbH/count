@@ -79,4 +79,14 @@
   color: rgba(255, 255, 255, 0.8);
   font-size: 0.85rem;
 }
+
+@media (max-width: 480px) {
+  .auth-layout {
+    padding: 1rem;
+  }
+
+  .auth-layout__card {
+    padding: 1.5rem;
+  }
+}
 </style>

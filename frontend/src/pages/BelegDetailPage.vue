@@ -903,4 +903,38 @@ async function verbuchen() {
   gap: 0.75rem;
   justify-content: flex-end;
 }
+
+@media (max-width: 768px) {
+  .detail__toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .detail__toolbar-right {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .detail__title {
+    font-size: 1.1rem;
+  }
+
+  .preview-panel__pdf iframe {
+    height: 350px;
+  }
+
+  .preview-panel__placeholder {
+    min-height: 200px;
+    padding: 2rem 1rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-form {
+    padding: 1rem;
+  }
+}
 </style>

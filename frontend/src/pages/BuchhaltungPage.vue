@@ -335,4 +335,26 @@ function sendRueckfrage() {
 .btn--outline { background: white; border: 1px solid #e5e7eb; color: #4b5563; }
 .btn--sm { padding: 0.35rem 0.65rem; font-size: 0.82rem; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 768px) {
+  .bulk-bar {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .bulk-bar__actions {
+    justify-content: center;
+  }
+
+  .card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    min-width: 650px;
+  }
+}
 </style>

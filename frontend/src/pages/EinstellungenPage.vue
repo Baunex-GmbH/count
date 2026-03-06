@@ -338,4 +338,19 @@ function selectPlan(tier: PricingTier) {
 .btn--primary { background: #0B3D91; color: white; }
 .btn--secondary { background: #f3f4f6; color: #4b5563; }
 .btn--outline { background: white; border: 1px solid #e5e7eb; color: #4b5563; }
+
+@media (max-width: 768px) {
+  .settings__tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab {
+    white-space: nowrap;
+  }
+
+  .pricing-card__amount {
+    font-size: 1.4rem;
+  }
+}
 </style>

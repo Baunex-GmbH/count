@@ -265,4 +265,28 @@ function goToDetail(id: string) {
 .btn--primary:hover {
   background: #092f73;
 }
+
+@media (max-width: 768px) {
+  .belege__header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .belege__filters {
+    flex-wrap: wrap;
+  }
+
+  .belege__table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    min-width: 600px;
+  }
+
+  .file-info__name {
+    max-width: 150px;
+  }
+}
 </style>

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 defineProps<{ collapsed: boolean }>()
+const emit = defineEmits<{ navigate: [] }>()
 
 const route = useRoute()
 const router = useRouter()
@@ -25,6 +26,7 @@ const menuItems = computed(() => {
   if (isBuchhalter.value) {
     items.push({ label: 'Journal', icon: 'pi pi-book', route: '/journal' })
     items.push({ label: 'Buchhaltung', icon: 'pi pi-calculator', route: '/buchhaltung' })
+    items.push({ label: 'Mandanten', icon: 'pi pi-building', route: '/mandanten' })
   }
   if (isHauptbuchhalter.value) {
     items.push({ label: 'Einstellungen', icon: 'pi pi-cog', route: '/einstellungen' })
@@ -39,6 +41,7 @@ function isActive(path: string): boolean {
 
 function navigate(path: string) {
   router.push(path)
+  emit('navigate')
 }
 </script>
 
@@ -214,7 +217,13 @@ function navigate(path: string) {
 
 @media (max-width: 768px) {
   .sidebar {
-    width: 64px;
+    transform: translateX(-100%);
+    width: 250px;
+  }
+
+  .sidebar.sidebar--mobile-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
   }
 }
 </style>

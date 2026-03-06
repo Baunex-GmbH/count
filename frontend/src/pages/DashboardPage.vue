@@ -363,4 +363,35 @@ function goToBeleg(id: string) {
   padding: 0.4rem 0.75rem;
   font-size: 0.82rem;
 }
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stat-card {
+    padding: 0.85rem;
+    gap: 0.65rem;
+  }
+
+  .stat-card__icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  .stat-card__value {
+    font-size: 1.05rem;
+  }
+
+  .dashboard__recent {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dashboard__recent .table {
+    min-width: 500px;
+  }
+}
 </style>

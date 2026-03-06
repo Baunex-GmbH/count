@@ -47,6 +47,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresTenant: true, minRole: 'Buchhalter' },
     },
     {
+      path: '/mandanten',
+      name: 'mandanten',
+      component: () => import('@/pages/MandantenPage.vue'),
+      meta: { requiresAuth: true, requiresTenant: true, minRole: 'Buchhalter' },
+    },
+    {
       path: '/einstellungen',
       name: 'einstellungen',
       component: () => import('@/pages/EinstellungenPage.vue'),

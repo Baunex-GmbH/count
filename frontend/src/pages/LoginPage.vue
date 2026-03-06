@@ -10,6 +10,20 @@ const password = ref('count123')
 const errorMsg = ref('')
 const isLoading = ref(false)
 
+const demoAccounts = [
+  { email: 'emre.oezbek@count.ch', name: 'Emre Özbek', role: 'Hauptbuchhalter', initials: 'EÖ' },
+  { email: 'sandra.hofer@treuhand-hofer.ch', name: 'Sandra Hofer', role: 'Buchhalter', initials: 'SH' },
+  { email: 'thomas.hofer@schreinerei-hofer.ch', name: 'Thomas Hofer', role: 'User', initials: 'TH' },
+  { email: 'patrizia.lang@gastro-seeland.ch', name: 'Patrizia Lang', role: 'User', initials: 'PL' },
+  { email: 'beat.buehler@elektro-buehler.ch', name: 'Beat Bühler', role: 'User', initials: 'BB' },
+]
+
+function selectDemoAccount(account: typeof demoAccounts[0]) {
+  email.value = account.email
+  password.value = 'count123'
+  handleLogin()
+}
+
 async function handleLogin() {
   errorMsg.value = ''
   if (!email.value) {
@@ -37,7 +51,29 @@ async function handleLogin() {
 
     <div class="login__demo-hint">
       <i class="pi pi-info-circle"></i>
-      Demo: emre.oezbek@count.ch / count123
+      Demo-Modus – Passwort: <strong>count123</strong>
+    </div>
+
+    <div class="demo-accounts">
+      <p class="demo-accounts__title">Schnellzugang</p>
+      <button
+        v-for="account in demoAccounts"
+        :key="account.email"
+        class="demo-account"
+        @click="selectDemoAccount(account)"
+        :disabled="isLoading"
+      >
+        <span class="demo-account__avatar">{{ account.initials }}</span>
+        <span class="demo-account__info">
+          <span class="demo-account__name">{{ account.name }}</span>
+          <span class="demo-account__role">{{ account.role }}</span>
+        </span>
+        <i class="pi pi-sign-in demo-account__arrow"></i>
+      </button>
+    </div>
+
+    <div class="login__divider">
+      <span>oder manuell</span>
     </div>
 
     <form @submit.prevent="handleLogin" class="login__form">
@@ -141,5 +177,104 @@ async function handleLogin() {
 
 .login__btn:hover {
   background: #092f73;
+}
+
+.demo-accounts {
+  margin-bottom: 1.25rem;
+}
+
+.demo-accounts__title {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.5rem;
+}
+
+.demo-account {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  margin-bottom: 0.4rem;
+}
+
+.demo-account:last-of-type {
+  margin-bottom: 0;
+}
+
+.demo-account:hover {
+  border-color: #0B3D91;
+  background: #f0f4fa;
+}
+
+.demo-account:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.demo-account__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #0B3D91;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.demo-account__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.demo-account__name {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.demo-account__role {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.demo-account__arrow {
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+.demo-account:hover .demo-account__arrow {
+  color: #0B3D91;
+}
+
+.login__divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.login__divider::before,
+.login__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
 }
 </style>

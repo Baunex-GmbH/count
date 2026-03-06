@@ -227,4 +227,28 @@ function exportCSV() {
   border-color: #0B3D91;
   color: #0B3D91;
 }
+
+@media (max-width: 768px) {
+  .journal__header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .journal__actions {
+    width: 100%;
+  }
+
+  .journal__actions .btn {
+    flex: 1;
+  }
+
+  .card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    min-width: 700px;
+  }
+}
 </style>
