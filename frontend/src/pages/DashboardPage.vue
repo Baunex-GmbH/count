@@ -3,19 +3,16 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDocumentStore } from '@/stores/documents'
-import { useJournalStore } from '@/stores/journal'
 import StatusBadge from '@/components/StatusBadge.vue'
 import SwissTrustBadge from '@/components/SwissTrustBadge.vue'
 
 const auth = useAuthStore()
 const docs = useDocumentStore()
-const journal = useJournalStore()
 const router = useRouter()
 
 onMounted(() => {
   if (auth.currentTenant) {
     docs.fetchDocuments(auth.currentTenant.id)
-    journal.fetchJournal(auth.currentTenant.id)
   }
 })
 
@@ -33,21 +30,6 @@ const lastUpload = computed(() => {
   if (!latest) return 'Keine Uploads'
   const d = new Date(latest.uploadDatum)
   return d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' })
-})
-
-const journalStats = computed(() => {
-  const entries = journal.currentTenantEntries
-  return {
-    total: entries.length,
-    ocrVorschlag: entries.filter((e) => e.status === 'OCR-Vorschlag').length,
-    bestaetigt: entries.filter((e) => e.status === 'Manuell bestaetigt').length,
-  }
-})
-
-const offenerBetrag = computed(() => {
-  return docs.currentTenantDocs
-    .filter((d) => d.status === 'In Pruefung' && d.ocrResult)
-    .reduce((sum, d) => sum + Math.abs(d.ocrResult!.betrag), 0)
 })
 
 const recentActivity = computed(() => {
@@ -152,41 +134,6 @@ function goToBeleg(id: string) {
         <div class="stat-card__body">
           <span class="stat-card__value">{{ formatCHF(docs.totalBetrag) }}</span>
           <span class="stat-card__label">Verbucht (Total)</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Secondary stats row -->
-    <div class="secondary-stats">
-      <div class="secondary-stat">
-        <i class="pi pi-book secondary-stat__icon"></i>
-        <div>
-          <span class="secondary-stat__value">{{ journalStats.total }}</span>
-          <span class="secondary-stat__label">Buchungen</span>
-        </div>
-      </div>
-      <div class="secondary-stat__divider"></div>
-      <div class="secondary-stat">
-        <i class="pi pi-sparkles secondary-stat__icon"></i>
-        <div>
-          <span class="secondary-stat__value">{{ journalStats.ocrVorschlag }}</span>
-          <span class="secondary-stat__label">OCR-Vorschläge</span>
-        </div>
-      </div>
-      <div class="secondary-stat__divider"></div>
-      <div class="secondary-stat">
-        <i class="pi pi-verified secondary-stat__icon"></i>
-        <div>
-          <span class="secondary-stat__value">{{ journalStats.bestaetigt }}</span>
-          <span class="secondary-stat__label">Bestätigt</span>
-        </div>
-      </div>
-      <div class="secondary-stat__divider"></div>
-      <div class="secondary-stat">
-        <i class="pi pi-exclamation-circle secondary-stat__icon secondary-stat__icon--warn"></i>
-        <div>
-          <span class="secondary-stat__value">{{ formatCHF(offenerBetrag) }}</span>
-          <span class="secondary-stat__label">Offener Betrag</span>
         </div>
       </div>
     </div>
@@ -338,7 +285,7 @@ function goToBeleg(id: string) {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .stat-card {
@@ -408,58 +355,6 @@ function goToBeleg(id: string) {
   color: white;
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
-}
-
-/* Secondary Stats */
-.secondary-stats {
-  display: flex;
-  align-items: center;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 0.85rem 1.5rem;
-  margin-bottom: 1.5rem;
-  gap: 1.5rem;
-  overflow-x: auto;
-}
-
-.secondary-stat {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  white-space: nowrap;
-}
-
-.secondary-stat div {
-  display: flex;
-  flex-direction: column;
-}
-
-.secondary-stat__icon {
-  font-size: 1rem;
-  color: #6b7280;
-}
-
-.secondary-stat__icon--warn {
-  color: #dc2626;
-}
-
-.secondary-stat__value {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.secondary-stat__label {
-  font-size: 0.72rem;
-  color: #9ca3af;
-}
-
-.secondary-stat__divider {
-  width: 1px;
-  height: 28px;
-  background: #e5e7eb;
-  flex-shrink: 0;
 }
 
 /* Main Layout */
@@ -725,11 +620,6 @@ function goToBeleg(id: string) {
 
   .stat-card__value {
     font-size: 1.05rem;
-  }
-
-  .secondary-stats {
-    padding: 0.75rem 1rem;
-    gap: 1rem;
   }
 
   .table {

@@ -13,9 +13,9 @@ const isLoading = ref(false)
 const demoAccounts = [
   { email: 'emre.oezbek@count.ch', name: 'Emre Özbek', role: 'Hauptbuchhalter', initials: 'EÖ' },
   { email: 'sandra.hofer@treuhand-hofer.ch', name: 'Sandra Hofer', role: 'Buchhalter', initials: 'SH' },
-  { email: 'thomas.hofer@schreinerei-hofer.ch', name: 'Thomas Hofer', role: 'User', initials: 'TH' },
-  { email: 'patrizia.lang@gastro-seeland.ch', name: 'Patrizia Lang', role: 'User', initials: 'PL' },
-  { email: 'beat.buehler@elektro-buehler.ch', name: 'Beat Bühler', role: 'User', initials: 'BB' },
+  { email: 'thomas.hofer@schreinerei-hofer.ch', name: 'Thomas Hofer', role: 'Mandant', initials: 'TH' },
+  { email: 'patrizia.lang@gastro-seeland.ch', name: 'Patrizia Lang', role: 'Mandant', initials: 'PL' },
+  { email: 'beat.buehler@elektro-buehler.ch', name: 'Beat Bühler', role: 'Mandant', initials: 'BB' },
 ]
 
 function selectDemoAccount(account: typeof demoAccounts[0]) {
