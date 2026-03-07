@@ -92,8 +92,15 @@ function formatCHF(value: number): string {
   return new Intl.NumberFormat('de-CH', { style: 'currency', currency: 'CHF' }).format(value)
 }
 
+const isBuchhalter = computed(() => {
+  const role = auth.currentUser?.role
+  return role === 'Buchhalter' || role === 'Hauptbuchhalter'
+})
+
 function goToBeleg(id: string) {
-  router.push(`/belege/${id}`)
+  if (isBuchhalter.value) {
+    router.push(`/belege/${id}`)
+  }
 }
 </script>
 
@@ -209,7 +216,7 @@ function goToBeleg(id: string) {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="doc in recentDocs" :key="doc.id" class="table__row--clickable" @click="goToBeleg(doc.id)">
+                <tr v-for="doc in recentDocs" :key="doc.id" :class="{ 'table__row--clickable': isBuchhalter }" @click="goToBeleg(doc.id)">
                   <td class="table__filename">
                     <i class="pi pi-file-pdf table__file-icon"></i>
                     {{ doc.dateiname }}

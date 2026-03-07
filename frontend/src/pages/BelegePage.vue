@@ -11,6 +11,11 @@ const router = useRouter()
 const auth = useAuthStore()
 const docs = useDocumentStore()
 
+const isBuchhalter = computed(() => {
+  const role = auth.currentUser?.role
+  return role === 'Buchhalter' || role === 'Hauptbuchhalter'
+})
+
 onMounted(() => {
   if (auth.currentTenant) {
     docs.fetchDocuments(auth.currentTenant.id)
@@ -48,7 +53,9 @@ function formatDate(iso: string): string {
 }
 
 function goToDetail(id: string) {
-  router.push(`/belege/${id}`)
+  if (isBuchhalter.value) {
+    router.push(`/belege/${id}`)
+  }
 }
 </script>
 
@@ -96,7 +103,7 @@ function goToDetail(id: string) {
           <tr
             v-for="doc in filteredDocs"
             :key="doc.id"
-            class="table__row--clickable"
+            :class="{ 'table__row--clickable': isBuchhalter }"
             @click="goToDetail(doc.id)"
           >
             <td>

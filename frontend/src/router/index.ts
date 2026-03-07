@@ -32,7 +32,7 @@ const router = createRouter({
       path: '/belege/:id',
       name: 'beleg-detail',
       component: () => import('@/pages/BelegDetailPage.vue'),
-      meta: { requiresAuth: true, requiresTenant: true },
+      meta: { requiresAuth: true, requiresTenant: true, minRole: 'Buchhalter' },
     },
     {
       path: '/journal',
