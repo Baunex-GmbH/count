@@ -47,7 +47,7 @@ function navigate(path: string) {
   <aside class="sidebar" :class="{ 'sidebar--collapsed': collapsed }">
     <div class="sidebar__header">
       <div class="sidebar__logo">
-        <span class="sidebar__logo-icon">+</span>
+        <img src="@/assets/logo.png" alt="Count" class="sidebar__logo-img" />
         <span v-if="!collapsed" class="sidebar__logo-text">Count</span>
       </div>
     </div>
@@ -111,16 +111,10 @@ function navigate(path: string) {
   gap: 0.5rem;
 }
 
-.sidebar__logo-icon {
-  font-size: 1.5rem;
-  font-weight: 800;
-  background: rgba(255, 255, 255, 0.15);
+.sidebar__logo-img {
   width: 36px;
   height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
+  object-fit: contain;
   flex-shrink: 0;
 }
 

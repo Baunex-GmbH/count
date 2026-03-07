@@ -5,7 +5,7 @@
   <div class="auth-layout">
     <div class="auth-layout__card">
       <div class="auth-layout__logo">
-        <span class="auth-layout__logo-icon">+</span>
+        <img src="@/assets/logo.png" alt="Count" class="auth-layout__logo-img" />
         <span class="auth-layout__logo-text">Count</span>
       </div>
       <p class="auth-layout__subtitle">Buchhaltung. Einfach. Schweiz.</p>
@@ -45,17 +45,10 @@
   margin-bottom: 0.5rem;
 }
 
-.auth-layout__logo-icon {
-  font-size: 2rem;
-  font-weight: 800;
-  color: #0B3D91;
-  background: #e8eef7;
+.auth-layout__logo-img {
   width: 48px;
   height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
+  object-fit: contain;
 }
 
 .auth-layout__logo-text {
